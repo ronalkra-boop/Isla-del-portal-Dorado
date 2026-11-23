@@ -1,0 +1,6 @@
+{
+  "name": "Isla del Portal Dorado",
+  "description": "Aventura bíblica 3D estilizada donde Oli y su divertida guacamaya Waka exploran 3 mundos mágicos, descubren cofres con artefactos bíblicos explicados en audio y cruzan el Portal Dorado.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
