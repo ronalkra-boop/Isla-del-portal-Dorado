@@ -10,6 +10,7 @@ DESERT_OASIS_CENTER,
 DESERT_PORTAL_POS,
 DESERT_PYRAMID_CENTER,
 DESERT_SPAWN_POS,
+PLAYER_COLLISION_RADIUS,
 SPAWN_POS,
 STARS_TO_UNLOCK_FLIGHT,
 TEMPLE_PORTAL_POS,
@@ -35,8 +36,10 @@ findNearestNpc,
 getCavernGroundHeight,
 getDesertGroundHeight,
 getIslandGroundHeight,
+resolveSolidCollisions,
 stepPlayerSimulation,
 type InputSnapshot,
+type SolidCollider,
 type WorldId,
 } from './phase1Logic.ts';
 import { STORY_CUES, sanitizeSpokenText } from './storyCues.ts';
@@ -146,7 +149,7 @@ assert.equal(player.starsCollected.length, STARS_TO_UNLOCK_FLIGHT);
 assert.equal(player.flightUnlocked, true);
 });
 
-test('walking forward moves Oli along the trail and accumulates walkDistance', () => {
+test('walking forward moves Holy along the trail and accumulates walkDistance', () => {
 const player = createInitialPlayerState(1);
 const stars = createInitialMagicStars();
 const startZ = player.z;
@@ -165,7 +168,7 @@ assert.ok(player.walkDistance > 1.5, 'Walk distance should accumulate');
 assert.equal(player.isFlying, false);
 });
 
-test('pressing Space after unlocking flight lifts Oli into the sky', () => {
+test('pressing Space after unlocking flight lifts Holy into the sky', () => {
 const player = createInitialPlayerState(1);
 const stars = createInitialMagicStars();
 player.flightUnlocked = true;
@@ -182,7 +185,7 @@ assert.equal(player.isFlying, true);
 assert.ok(player.vy > 0);
 });
 
-test('bouncy mushrooms launch Oli upward and wind rings refill flight energy', () => {
+test('bouncy mushrooms launch Holy upward and wind rings refill flight energy', () => {
 const player = createInitialPlayerState(1);
 const mushrooms = createBouncyMushrooms();
 const rings = createWindRings();
@@ -279,7 +282,7 @@ assert.ok(
 `Cue ${cueId} contains XML/stage tag in spoken text: ${line.text}`,
 );
 assert.ok(
-!/^(Waka|Oli|CapitanCoral|Mateo|Ixchel|MineroNoe|Ester|Samuel|David|Miriam|Caleb)\s*:/i.test(line.text),
+!/^(Waka|Holy|Oli|CapitanCoral|Mateo|Ixchel|MineroNoe|Ester|Samuel|David|Miriam|Caleb)\s*:/i.test(line.text),
 `Cue ${cueId} contains speaker prefix in spoken text: ${line.text}`,
 );
 assert.equal(sanitizeSpokenText(line.text), line.text.trim());
@@ -290,6 +293,85 @@ assert.ok(cue.quiz.question.length > 10);
 assert.ok(cue.quiz.wakaHint.length > 10);
 assert.ok(cue.quiz.wrongReply.length > 10);
 assert.ok(cue.quiz.rewardMessage.length > 10);
+}
+}
+});
+
+test('solid rock/tree collisions push Holy outward and allow flying cleanly over obstacles', () => {
+const player = createInitialPlayerState(1);
+const stars = createInitialMagicStars();
+const baseY = getIslandGroundHeight(player.x, player.z - 2.4);
+const rock: SolidCollider = {
+x: player.x,
+z: player.z - 2.4,
+radius: 0.9,
+minY: baseY - 0.3,
+maxY: baseY + 1.4,
+kind: 'rock',
+};
+
+for (let i = 0; i < 40; i++) {
+stepPlayerSimulation(
+player,
+{ ...idleInput, forward: true, cameraYaw: 0 },
+stars,
+0.016,
+getIslandGroundHeight,
+[],
+[],
+[],
+TEMPLE_PORTAL_POS,
+0,
+32,
+[rock],
+);
+}
+
+const distXZ = Math.hypot(player.x - rock.x, player.z - rock.z);
+assert.ok(
+distXZ >= PLAYER_COLLISION_RADIUS + rock.radius - 1e-4,
+`Expected Holy to be stopped outside solid rock radius (${PLAYER_COLLISION_RADIUS + rock.radius}), got ${distXZ}`,
+);
+
+// Flying high above maxY clears the rock without horizontal pushback
+const flyingPlayer = createInitialPlayerState(1);
+flyingPlayer.x = rock.x;
+flyingPlayer.z = rock.z;
+flyingPlayer.y = rock.maxY + 0.5;
+assert.equal(resolveSolidCollisions(flyingPlayer, [rock]), false);
+});
+
+test('dynamic moving animal collider blocks walk-through and tracks animal motion', () => {
+const player = createInitialPlayerState(1);
+const animal: SolidCollider = {
+x: player.x,
+z: player.z - 0.5,
+radius: 0.75,
+minY: player.y - 0.2,
+maxY: player.y + 1.2,
+kind: 'animal',
+};
+
+const hit1 = resolveSolidCollisions(player, [animal]);
+assert.equal(hit1, true);
+assert.ok(Math.hypot(player.x - animal.x, player.z - animal.z) >= PLAYER_COLLISION_RADIUS + animal.radius - 1e-4);
+
+animal.x += 5.0;
+assert.equal(resolveSolidCollisions(player, [animal]), false);
+});
+
+test('all STORY_CUES consistently address Holy (with H) and never Oli', () => {
+for (const [cueId, cue] of Object.entries(STORY_CUES)) {
+for (const line of cue.lines) {
+assert.notEqual(line.speaker, 'Oli', `Cue ${cueId} still uses speaker Oli`);
+assert.ok(!/\bOli\b/.test(line.displayName), `Cue ${cueId} displayName still mentions Oli`);
+assert.ok(!/\bOli\b/.test(line.text), `Cue ${cueId} dialogue text still mentions Oli: ${line.text}`);
+}
+if (cue.quiz) {
+assert.ok(!/\bOli\b/.test(cue.quiz.question));
+assert.ok(!/\bOli\b/.test(cue.quiz.wakaHint));
+assert.ok(!/\bOli\b/.test(cue.quiz.wrongReply));
+assert.ok(!/\bOli\b/.test(cue.quiz.rewardMessage));
 }
 }
 });

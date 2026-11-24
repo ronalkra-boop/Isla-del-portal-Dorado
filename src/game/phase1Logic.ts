@@ -23,6 +23,63 @@ y: number;
 z: number;
 }
 
+export const PLAYER_COLLISION_RADIUS = 0.52;
+export const PLAYER_HEIGHT = 1.65;
+
+export interface SolidCollider {
+x: number;
+z: number;
+radius: number;
+minY: number;
+maxY: number;
+kind?: 'rock' | 'tree' | 'structure' | 'npc' | 'animal' | 'cactus' | 'crystal';
+}
+
+export function resolveSolidCollisions(
+player: PlayerSimState,
+colliders: SolidCollider[],
+playerRadius = PLAYER_COLLISION_RADIUS,
+): boolean {
+if (colliders.length === 0) return false;
+let collided = false;
+for (let pass = 0; pass < 2; pass++) {
+for (let i = 0; i < colliders.length; i++) {
+const c = colliders[i];
+if (
+player.y >= c.maxY - 0.14 ||
+player.y + PLAYER_HEIGHT <= c.minY + 0.14
+) {
+continue;
+}
+let dx = player.x - c.x;
+let dz = player.z - c.z;
+let distSq = dx * dx + dz * dz;
+const minDist = playerRadius + c.radius;
+if (distSq >= minDist * minDist) continue;
+
+collided = true;
+if (distSq < 1e-6) {
+dx = 0;
+dz = 1;
+distSq = 1;
+}
+const dist = Math.sqrt(distSq);
+const nx = dx / dist;
+const nz = dz / dist;
+const overlap = minDist - dist;
+player.x += nx * overlap;
+player.z += nz * overlap;
+
+const inwardDot = player.vx * nx + player.vz * nz;
+if (inwardDot < 0) {
+player.vx -= inwardDot * nx;
+player.vz -= inwardDot * nz;
+}
+}
+}
+return collided;
+}
+
 export interface WorldThemeDef {
 id: WorldId;
 shortName: string;
@@ -1249,6 +1306,7 @@ windRings: WindRingDef[] = [],
 portalPos: Vec3 = TEMPLE_PORTAL_POS,
 waterLevel: number = WATER_LEVEL,
 maxFlightY = 32,
+solidColliders: SolidCollider[] = [],
 ): StepEvents {
 const dt = clampDt(rawDt);
 const events: StepEvents = {
@@ -1377,6 +1435,8 @@ if (player.y > maxFlightY) {
 player.y = maxFlightY;
 if (player.vy > 0) player.vy = 0;
 }
+
+resolveSolidCollisions(player, solidColliders);
 
 const groundH = groundHeightFn(player.x, player.z);
 const floorLimit = Math.max(groundH, waterLevel + 0.12);

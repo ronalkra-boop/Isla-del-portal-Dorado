@@ -12,6 +12,7 @@ type BiblicalArtifactType,
 type BouncyMushroomDef,
 type MagicStarDef,
 type NpcDef,
+type SolidCollider,
 type SunGemDef,
 type SunGemId,
 type WindRingDef,
@@ -107,6 +108,8 @@ mushroomVisuals: MushroomVisual[];
 windRingVisuals: WindRingVisual[];
 npcVisuals: NpcVisual[];
 sparkles: SparkleParticlePool;
+staticColliders: SolidCollider[];
+dynamicColliders: SolidCollider[];
 update: (t: number, dt: number, portalAwakened: boolean) => void;
 }
 
@@ -299,1542 +302,1654 @@ collected: false,
 };
 });
 }
+
 export function createWindRingVisuals(
-  worldGroup: THREE.Group,
-  windRingsDef: WindRingDef[],
-  ringColorHex = 0xffd54f,
-  innerColorHex = 0x6ef7ff,
-  ): WindRingVisual[] {
-  return windRingsDef.map((r) => {
-  const group = new THREE.Group();
-  group.position.set(r.x, r.y, r.z);
-
-  const outerRing = new THREE.Mesh(
-  new THREE.TorusGeometry(r.radius * 0.85, 0.14, 10, 32),
-  new THREE.MeshStandardMaterial({
-  color: ringColorHex,
-  emissive: ringColorHex,
-  emissiveIntensity: 0.45,
-  roughness: 0.22,
-  }),
-  );
-  group.add(outerRing);
-
-  const innerRing = new THREE.Mesh(
-  new THREE.TorusGeometry(r.radius * 0.68, 0.06, 8, 28),
-  new THREE.MeshBasicMaterial({
-  color: innerColorHex,
-  transparent: true,
-  opacity: 0.8,
-  }),
-  );
-  group.add(innerRing);
-
-  worldGroup.add(group);
-  return {
-  id: r.id,
-  group,
-  outerRing,
-  innerRing,
-  passed: false,
-  };
-  });
-  }
-
-  export function createBiblicalArtifactMesh(
-  artifactType: BiblicalArtifactType,
-  ): THREE.Group {
-  const g = new THREE.Group();
-
-  const goldMat = new THREE.MeshPhysicalMaterial({
-  color: 0xffd54f,
-  emissive: 0xd98200,
-  emissiveIntensity: 0.62,
-  roughness: 0.16,
-  metalness: 0.9,
-  clearcoat: 0.72,
-  clearcoatRoughness: 0.12,
-  });
-  const flameMat = new THREE.MeshBasicMaterial({ color: 0xfff3b0 });
-  const leatherMat = new THREE.MeshStandardMaterial({ color: 0x6d2c1b, roughness: 0.55 });
-  const clayMat = new THREE.MeshStandardMaterial({ color: 0xb8653b, roughness: 0.7 });
-  const pageMat = new THREE.MeshStandardMaterial({ color: 0xfff8e7, roughness: 0.75 });
-  const crystalMat = new THREE.MeshPhysicalMaterial({
-  color: 0x45efe2,
-  emissive: 0x1ba89c,
-  emissiveIntensity: 0.74,
-  roughness: 0.12,
-  clearcoat: 1.0,
-  clearcoatRoughness: 0.08,
-  });
-
-  if (artifactType === 'menorah') {
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 0.12, 14), goldMat);
-  g.add(base);
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.065, 0.78, 12), goldMat);
-  stem.position.y = 0.42;
-  g.add(stem);
-
-  for (const r of [0.22, 0.36, 0.5]) {
-  const branch = new THREE.Mesh(
-  new THREE.TorusGeometry(r, 0.036, 8, 20, Math.PI),
-  goldMat,
-  );
-  branch.rotation.z = Math.PI;
-  branch.position.y = 0.78;
-  g.add(branch);
-  }
-
-  for (const lx of [-0.5, -0.36, -0.22, 0, 0.22, 0.36, 0.5]) {
-  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.03, 0.07, 8), goldMat);
-  cup.position.set(lx, 0.81, 0);
-  g.add(cup);
-  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.042, 0.13, 8), flameMat);
-  flame.position.set(lx, 0.9, 0);
-  g.add(flame);
-  }
-  } else if (artifactType === 'bible') {
-  for (const s of [-1, 1]) {
-  const cover = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 0.56), leatherMat);
-  cover.position.set(s * 0.2, 0.25, 0);
-  cover.rotation.z = s * -0.18;
-  g.add(cover);
-
-  const page = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.07, 0.51), pageMat);
-  page.position.set(s * 0.19, 0.29, 0);
-  page.rotation.z = s * -0.18;
-  g.add(page);
-  }
-  const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.44, 0.06), goldMat);
-  vBar.position.set(0, 0.62, 0);
-  g.add(vBar);
-  const hBar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.06), goldMat);
-  hBar.position.set(0, 0.68, 0);
-  g.add(hBar);
-  } else if (artifactType === 'ark') {
-  const arkBox = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.42, 0.44), goldMat);
-  arkBox.position.y = 0.25;
-  g.add(arkBox);
-  for (const s of [-0.15, 0.15]) {
-  const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.36, 0.07), crystalMat);
-  tablet.position.set(s, 0.62, 0);
-  g.add(tablet);
-  }
-  } else if (artifactType === 'oil_lamp') {
-  // Ancient curved Herodian oil lamp with glowing flame
-  const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), goldMat);
-  bowl.scale.set(1.25, 0.58, 0.9);
-  bowl.position.y = 0.32;
-  g.add(bowl);
-  const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.11, 0.34, 10), goldMat);
-  spout.rotation.z = -Math.PI * 0.42;
-  spout.position.set(0.32, 0.38, 0);
-  g.add(spout);
-  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.032, 8, 14), goldMat);
-  handle.position.set(-0.32, 0.4, 0);
-  g.add(handle);
-  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.22, 10), flameMat);
-  flame.position.set(0.45, 0.56, 0);
-  g.add(flame);
-  } else if (artifactType === 'scroll_jar') {
-  // Dead Sea clay jar with parchment scrolls emerging
-  const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.62, 14), clayMat);
-  jar.position.y = 0.35;
-  g.add(jar);
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 8, 16), clayMat);
-  rim.rotation.x = Math.PI / 2;
-  rim.position.y = 0.66;
-  g.add(rim);
-  for (const sx of [-0.08, 0.09]) {
-  const scroll = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.46, 12), pageMat);
-  scroll.position.set(sx, 0.72, 0);
-  scroll.rotation.z = sx * -1.4;
-  g.add(scroll);
-  const seal = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.078, 0.06, 12), goldMat);
-  seal.position.set(sx, 0.72, 0);
-  seal.rotation.z = sx * -1.4;
-  g.add(seal);
-  }
-  } else if (artifactType === 'cornerstone') {
-  // Beveled glowing Cornerstone block with radiant golden cross
-  const cube = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.56, 0.56), crystalMat);
-  cube.position.y = 0.44;
-  cube.rotation.set(0.25, Math.PI / 4, 0);
-  g.add(cube);
-  const vCross = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.46, 0.62), goldMat);
-  vCross.position.y = 0.44;
-  vCross.rotation.set(0.25, Math.PI / 4, 0);
-  g.add(vCross);
-  const hCross = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.1, 0.62), goldMat);
-  hCross.position.y = 0.48;
-  hCross.rotation.set(0.25, Math.PI / 4, 0);
-  g.add(hCross);
-  } else if (artifactType === 'manna') {
-  const chalice = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.16, 0.42, 14), goldMat);
-  chalice.position.y = 0.34;
-  g.add(chalice);
-  const bread = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 12), flameMat);
-  bread.scale.set(1.1, 0.75, 1.1);
-  bread.position.y = 0.58;
-  g.add(bread);
-  } else if (artifactType === 'staff_harp') {
-  // Shepherd's crook paired with David's golden harp
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.78, 10), goldMat);
-  pole.position.set(-0.22, 0.42, 0);
-  g.add(pole);
-  const crook = new THREE.Mesh(
-  new THREE.TorusGeometry(0.13, 0.038, 8, 16, Math.PI * 1.35),
-  goldMat,
-  );
-  crook.position.set(-0.1, 0.8, 0);
-  g.add(crook);
-  const frame = new THREE.Mesh(
-  new THREE.TorusGeometry(0.24, 0.04, 8, 18, Math.PI * 1.35),
-  goldMat,
-  );
-  frame.position.set(0.22, 0.45, 0);
-  g.add(frame);
-  for (let s = -1; s <= 1; s++) {
-  const str = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.36, 6), flameMat);
-  str.position.set(0.22 + s * 0.07, 0.45, 0);
-  g.add(str);
-  }
-  } else {
-  // 'water_crown': Living Water Amphora topped with Golden Crown of Life
-  const jar = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 12), crystalMat);
-  jar.scale.set(1, 1.2, 1);
-  jar.position.y = 0.34;
-  g.add(jar);
-  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.2, 12), goldMat);
-  crown.position.y = 0.72;
-  g.add(crown);
-  const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), flameMat);
-  pearl.position.y = 0.9;
-  g.add(pearl);
-  }
-
-  return g;
-  }
-
-  export function createBiblicalTreasureChest(
-  def: SunGemDef,
-  woodMat: THREE.Material,
-  ): BiblicalChestVisual {
-  const group = new THREE.Group();
-  group.position.set(def.x, def.y - 0.65, def.z);
-
-  const goldTrimMat = new THREE.MeshPhysicalMaterial({
-  color: 0xffcf40,
-  emissive: 0xb86e00,
-  emissiveIntensity: 0.48,
-  roughness: 0.2,
-  metalness: 0.88,
-  clearcoat: 0.6,
-  });
-
-  const baseBox = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.68, 0.86), woodMat);
-  baseBox.position.y = 0.34;
-  baseBox.castShadow = true;
-  baseBox.receiveShadow = true;
-  group.add(baseBox);
-
-  for (const sx of [-0.42, 0.42]) {
-  const strap = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.7, 0.9), goldTrimMat);
-  strap.position.set(sx, 0.34, 0);
-  group.add(strap);
-  }
-  const lockPlate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.26, 0.08), goldTrimMat);
-  lockPlate.position.set(0, 0.52, 0.44);
-  group.add(lockPlate);
-
-  const lidPivot = new THREE.Group();
-  lidPivot.position.set(0, 0.68, -0.42);
-  lidPivot.rotation.x = -0.35;
-
-  const lidVault = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.43, 0.43, 1.25, 12, 1, false, 0, Math.PI),
-  woodMat,
-  );
-  lidVault.rotation.z = Math.PI / 2;
-  lidVault.position.set(0, 0, 0.42);
-  lidVault.castShadow = true;
-  lidPivot.add(lidVault);
-
-  for (const sx of [-0.42, 0.42]) {
-  const lidStrap = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.45, 0.45, 0.11, 12, 1, false, 0, Math.PI),
-  goldTrimMat,
-  );
-  lidStrap.rotation.z = Math.PI / 2;
-  lidStrap.position.set(sx, 0, 0.42);
-  lidPivot.add(lidStrap);
-  }
-  group.add(lidPivot);
-
-  const artifactGroup = createBiblicalArtifactMesh(def.artifactType);
-  artifactGroup.position.set(0, 0.88, 0);
-  artifactGroup.scale.setScalar(1.25);
-  group.add(artifactGroup);
-
-  const ringMesh = new THREE.Mesh(
-  new THREE.TorusGeometry(1.25, 0.048, 8, 28),
-  new THREE.MeshBasicMaterial({
-  color: def.colorHex,
-  transparent: true,
-  opacity: 0.82,
-  side: THREE.DoubleSide,
-  }),
-  );
-  ringMesh.rotation.x = Math.PI * 0.5;
-  ringMesh.position.y = 0.25;
-  group.add(ringMesh);
-
-  const beamMesh = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.46, 1.05, 6.8, 16, 1, true),
-  createGodRayMaterial(def.colorHex, 0.2),
-  );
-  beamMesh.position.y = 3.35;
-  group.add(beamMesh);
-
-  return {
-  id: def.id,
-  def,
-  group,
-  lidPivot,
-  artifactGroup,
-  ringMesh,
-  beamMesh,
-  baseY: def.y - 0.65,
-  collected: false,
-  openProgress: 0,
-  };
-  }
-  export function createFriendlyNpcMesh(def: NpcDef): NpcVisual {
-    const group = new THREE.Group();
-    group.position.set(def.x, def.y, def.z);
-    group.rotation.y = def.yaw;
-
-    const skinMat = applyNintendoRimLight(
-    new THREE.MeshStandardMaterial({ color: 0xe8b48a, roughness: 0.62 }),
-    { colorHex: 0xffe4b8, power: 2.8, strength: 0.25 },
-    );
-    const robePalette: Record<NpcDef['id'], { robe: number; trim: number }> = {
-    captain: { robe: 0xb8292f, trim: 0xffcf40 },
-    mateo: { robe: 0x2a7b4c, trim: 0xd98a36 },
-    ixchel: { robe: 0xf2e3b6, trim: 0x38b6c4 },
-    noe: { robe: 0x3f5e8a, trim: 0xffb300 },
-    ester: { robe: 0x874da8, trim: 0xffd56b },
-    samuel: { robe: 0xf0e4cf, trim: 0x62d9f7 },
-    miriam: { robe: 0x1e8f8a, trim: 0xffcf52 },
-    david: { robe: 0xd97a2b, trim: 0xf5ecd5 },
-    caleb: { robe: 0x8a4826, trim: 0xffcf40 },
-    };
-    const pal = robePalette[def.id];
-    const tunicMat = applyNintendoRimLight(
-    new THREE.MeshStandardMaterial({ color: pal.robe, roughness: 0.74 }),
-    { colorHex: 0xfff0c8, power: 2.6, strength: 0.28 },
-    );
-    const trimMat = applyNintendoRimLight(
-    new THREE.MeshStandardMaterial({ color: pal.trim, roughness: 0.42 }),
-    { colorHex: 0xffffff, power: 2.6, strength: 0.22 },
-    );
-    const bootMat = new THREE.MeshStandardMaterial({ color: 0x3b2314, roughness: 0.7 });
-    const hairWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf2f0eb, roughness: 0.8 });
-    const npcEyeMat = new THREE.MeshPhysicalMaterial({
-    color: 0x1a1410,
-    roughness: 0.1,
-    clearcoat: 0.9,
-    });
-
-    for (const s of [-0.12, 0.12]) {
-    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.55, 10), bootMat);
-    leg.position.set(s, 0.275, 0);
-    leg.castShadow = true;
-    group.add(leg);
-    }
-
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 0.72, 14), tunicMat);
-    torso.position.y = 0.82;
-    torso.castShadow = true;
-    group.add(torso);
-
-    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.09, 14), trimMat);
-    belt.position.y = 0.72;
-    group.add(belt);
-
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 14), skinMat);
-    head.position.y = 1.38;
-    head.castShadow = true;
-    group.add(head);
-
-    for (const s of [-0.065, 0.065]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), npcEyeMat);
-    eye.position.set(s, 1.4, 0.182);
-    group.add(eye);
-    }
-
-    if (def.id === 'captain') {
-    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.36, 0.12, 3), bootMat);
-    hat.position.y = 1.56;
-    group.add(hat);
-    } else if (def.id === 'mateo') {
-    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.08, 16), trimMat);
-    hat.position.y = 1.54;
-    group.add(hat);
-    } else if (def.id === 'noe') {
-    // Miner helmet + glowing headlamp
-    const helmet = new THREE.Mesh(
-    new THREE.SphereGeometry(0.23, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55),
-    trimMat,
-    );
-    helmet.position.y = 1.44;
-    group.add(helmet);
-    const lamp = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.06, 0.06, 0.08, 10),
-    new THREE.MeshBasicMaterial({ color: 0xfff8b5 }),
-    );
-    lamp.rotation.x = Math.PI / 2;
-    lamp.position.set(0, 1.53, 0.22);
-    group.add(lamp);
-    } else if (def.id === 'samuel' || def.id === 'caleb') {
-    // Wise elder beard + shepherd/elder staff
-    const beard = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.26, 10), hairWhiteMat);
-    beard.rotation.x = Math.PI;
-    beard.position.set(0, 1.21, 0.14);
-    group.add(beard);
-    const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 1.65, 8), bootMat);
-    staff.position.set(-0.34, 0.84, 0.15);
-    group.add(staff);
-    } else if (def.id === 'miriam' || def.id === 'ixchel' || def.id === 'ester') {
-    const circlet = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.032, 8, 18), trimMat);
-    circlet.rotation.x = Math.PI / 2;
-    circlet.position.y = 1.5;
-    group.add(circlet);
-    } else if (def.id === 'david') {
-    // Shepherd headband + wooden shepherd crook
-    const band = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.028, 8, 18), trimMat);
-    band.rotation.x = Math.PI / 2;
-    band.position.y = 1.49;
-    group.add(band);
-    const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.55, 8), bootMat);
-    staff.position.set(-0.32, 0.8, 0.12);
-    group.add(staff);
-    }
-
-    const leftArm = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.32, 6, 8), tunicMat);
-    leftArm.position.set(-0.26, 0.92, 0);
-    leftArm.rotation.z = 0.22;
-    group.add(leftArm);
-
-    const rightArmPivot = new THREE.Group();
-    rightArmPivot.position.set(0.24, 1.08, 0);
-    const rightArm = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.32, 6, 8), tunicMat);
-    rightArm.position.set(0.06, 0.14, 0);
-    rightArmPivot.add(rightArm);
-    group.add(rightArmPivot);
-
-    const markerMesh = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.22, 0),
-    new THREE.MeshStandardMaterial({
-    color: 0xffe066,
-    emissive: 0xff9d00,
-    emissiveIntensity: 0.75,
-    roughness: 0.2,
-    }),
-    );
-    markerMesh.position.y = 2.08;
-    group.add(markerMesh);
-
-    return {
-    id: def.id,
-    def,
-    group,
-    rightArmPivot,
-    markerMesh,
-    baseY: def.y,
-    };
-    }
-
-    export function animateSharedWorldEntities(
-    t: number,
-    dt: number,
-    starVisuals: StarVisual[],
-    chestVisuals: BiblicalChestVisual[],
-    windRingVisuals: WindRingVisual[],
-    npcVisuals: NpcVisual[],
-    portalMaterial: THREE.ShaderMaterial,
-    portalCore: THREE.Mesh,
-    portalLight: THREE.PointLight,
-    portalAwakened: boolean,
-    ): void {
-    portalMaterial.uniforms.uTime.value = t;
-    portalMaterial.uniforms.uAwakened.value = portalAwakened ? 1.0 : 0.35;
-    (portalCore.material as THREE.MeshBasicMaterial).opacity = portalAwakened
-    ? 0.82
-    : 0.25;
-    portalLight.intensity =
-    (portalAwakened ? 8.4 : 3.2) + Math.sin(t * 4.2) * 1.4;
-
-    for (const sv of starVisuals) {
-    if (sv.collected) continue;
-    sv.starMesh.rotation.y = t * 1.9 + sv.id;
-    sv.ringMesh.rotation.z = t * 1.4;
-    sv.group.position.y = sv.baseY + Math.sin(t * 2.5 + sv.id) * 0.18;
-    }
-
-    for (const cv of chestVisuals) {
-    cv.artifactGroup.rotation.y = t * 1.6;
-    cv.ringMesh.rotation.z = t * 1.2;
-    if (cv.collected) {
-    cv.openProgress = Math.min(1, cv.openProgress + dt * 2.8);
-    cv.lidPivot.rotation.x = -0.35 - cv.openProgress * 1.05;
-    cv.artifactGroup.position.y =
-    0.88 + cv.openProgress * 0.95 + Math.sin(t * 3.0) * 0.12;
-    cv.artifactGroup.scale.setScalar(1.25 + cv.openProgress * 0.35);
-    } else {
-    cv.artifactGroup.position.y = 0.88 + Math.sin(t * 2.4) * 0.1;
-    }
-    }
-
-    for (const wr of windRingVisuals) {
-    wr.outerRing.rotation.z = t * 1.5 + wr.id;
-    wr.innerRing.rotation.x = Math.sin(t * 2.2 + wr.id) * 0.35;
-    wr.innerRing.rotation.y = t * 2.1;
-    }
-
-    for (const nv of npcVisuals) {
-    nv.rightArmPivot.rotation.z = -2.35 + Math.sin(t * 4.2 + nv.baseY) * 0.35;
-    nv.markerMesh.rotation.y = t * 2.4;
-    nv.markerMesh.position.y = 2.08 + Math.sin(t * 3.2) * 0.12;
-    }
-    }
-
-    function createCarvedGuardianHead(
-    stoneMat: THREE.Material,
-    mossMat: THREE.Material,
-    ): THREE.Group {
-    const head = new THREE.Group();
-
-    const block = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.85, 1.35), stoneMat);
-    block.position.y = 0.92;
-    block.castShadow = true;
-    block.receiveShadow = true;
-    head.add(block);
-
-    const brow = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 1.42), stoneMat);
-    brow.position.set(0, 1.48, 0.05);
-    brow.castShadow = true;
-    head.add(brow);
-
-    const crown = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.38, 1.15), mossMat);
-    crown.position.set(0, 1.98, 0);
-    head.add(crown);
-
-    for (const s of [-0.34, 0.34]) {
-    const eyeSocket = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.16, 0.16, 0.14, 10),
-    stoneMat,
-    );
-    eyeSocket.rotation.x = Math.PI / 2;
-    eyeSocket.position.set(s, 1.14, 0.68);
-    head.add(eyeSocket);
-    }
-
-    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.48, 0.24), stoneMat);
-    nose.position.set(0, 0.92, 0.72);
-    head.add(nose);
-
-    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.16, 0.14), stoneMat);
-    mouth.position.set(0, 0.5, 0.67);
-    head.add(mouth);
-
-    return head;
-    }
-
-    interface IslandAnimal {
-    kind: 'dolphin' | 'crab' | 'lamb' | 'bird';
-    group: THREE.Group;
-    leftWing?: THREE.Object3D;
-    rightWing?: THREE.Object3D;
-    originX: number;
-    originY: number;
-    originZ: number;
-    phase: number;
-    radius: number;
-    speed: number;
-    }
-
-    function buildIslandAnimals(worldGroup: THREE.Group): IslandAnimal[] {
-    const animals: IslandAnimal[] = [];
-
-    const dolphinMat = new THREE.MeshStandardMaterial({
-    color: 0x4ba3d9,
-    roughness: 0.32,
-    metalness: 0.1,
-    });
-    for (const [dx, dz, phase] of [
-    [-46, -24, 0],
-    [-22, -38, 2.1],
-    [42, 18, 4.2],
-    ] as Array<[number, number, number]>) {
-    const dg = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 1.05, 8, 12), dolphinMat);
-    body.rotation.x = Math.PI / 2;
-    dg.add(body);
-    const fin = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.42, 6), dolphinMat);
-    fin.position.set(0, 0.32, -0.1);
-    fin.rotation.x = -0.35;
-    dg.add(fin);
-    dg.position.set(dx, -0.2, dz);
-    worldGroup.add(dg);
-    animals.push({
-    kind: 'dolphin',
-    group: dg,
-    originX: dx,
-    originY: -0.2,
-    originZ: dz,
-    phase,
-    radius: 4.5,
-    speed: 1.5,
-    });
-    }
-
-    const crabMat = new THREE.MeshStandardMaterial({ color: 0xe63b2e, roughness: 0.55 });
-    (
-    [
-    [-16, -1.8],
-    [-19, 3.2],
-    [12, 34],
-    [-8, 38],
-    ] as Array<[number, number]>
-    ).forEach(([cx, cz], idx) => {
-    const cg = new THREE.Group();
-    const shell = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), crabMat);
-    shell.scale.set(1.3, 0.55, 1.0);
-    shell.position.y = 0.16;
-    cg.add(shell);
-    const cy = getIslandGroundHeight(cx, cz);
-    cg.position.set(cx, cy, cz);
-    worldGroup.add(cg);
-    animals.push({
-    kind: 'crab',
-    group: cg,
-    originX: cx,
-    originY: cy,
-    originZ: cz,
-    phase: idx * 1.7,
-    radius: 1.6,
-    speed: 2.8,
-    });
-    });
-
-    const woolMat = new THREE.MeshStandardMaterial({ color: 0xfaf6ee, roughness: 0.9 });
-    const lambFaceMat = new THREE.MeshStandardMaterial({ color: 0x3b2d26, roughness: 0.7 });
-    (
-    [
-    [-9.5, 28.0],
-    [8.5, 24.5],
-    [-11.0, 11.0],
-    [12.5, -14.0],
-    [-8.5, -26.5],
-    ] as Array<[number, number]>
-    ).forEach(([lx, lz], idx) => {
-    const lg = new THREE.Group();
-    const wool = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 10), woolMat);
-    wool.scale.set(1.0, 0.9, 1.35);
-    wool.position.y = 0.46;
-    wool.castShadow = true;
-    lg.add(wool);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), lambFaceMat);
-    head.position.set(0, 0.64, 0.44);
-    lg.add(head);
-    const crownWool = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), woolMat);
-    crownWool.position.set(0, 0.78, 0.4);
-    lg.add(crownWool);
-    for (const sx of [-0.15, 0.15]) {
-    for (const sz of [-0.24, 0.24]) {
-    const leg = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.05, 0.045, 0.36, 8),
-    lambFaceMat,
-    );
-    leg.position.set(sx, 0.18, sz);
-    lg.add(leg);
-    }
-    }
-    const ly = getIslandGroundHeight(lx, lz);
-    lg.position.set(lx, ly, lz);
-    worldGroup.add(lg);
-    animals.push({
-    kind: 'lamb',
-    group: lg,
-    originX: lx,
-    originY: ly,
-    originZ: lz,
-    phase: idx * 1.3,
-    radius: 1.4,
-    speed: 0.85,
-    });
-    });
-
-    const doveMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
-    const beakMat = new THREE.MeshStandardMaterial({ color: 0xffb300, roughness: 0.4 });
-    (
-    [
-    [26, 13.5, -18, 6.5],
-    [-18, 11.0, -14, 7.0],
-    [0, 16.5, -46, 8.0],
-    [8, 9.5, 16, 6.0],
-    ] as Array<[number, number, number, number]>
-    ).forEach(([bx, by, bz, rad], idx) => {
-    const bg = new THREE.Group();
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.28, 6, 8), doveMat);
-    torso.rotation.x = Math.PI / 2;
-    bg.add(torso);
-    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 6), beakMat);
-    beak.rotation.x = Math.PI / 2;
-    beak.position.z = 0.25;
-    bg.add(beak);
-    const leftWing = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.03, 0.22), doveMat);
-    leftWing.position.set(-0.24, 0.04, 0);
-    bg.add(leftWing);
-    const rightWing = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.03, 0.22), doveMat);
-    rightWing.position.set(0.24, 0.04, 0);
-    bg.add(rightWing);
-    bg.position.set(bx, by, bz);
-    worldGroup.add(bg);
-    animals.push({
-    kind: 'bird',
-    group: bg,
-    leftWing,
-    rightWing,
-    originX: bx,
-    originY: by,
-    originZ: bz,
-    phase: idx * 1.6,
-    radius: rad,
-    speed: 0.95,
-    });
-    });
-
-    return animals;
-    }
-
-  export function buildIslandWorld(
-    starsDef: MagicStarDef[],
-    maxAniso: number,
-    gemsDef: SunGemDef[],
-    mushroomsDef: BouncyMushroomDef[],
-    windRingsDef: WindRingDef[],
-    npcsDef: NpcDef[],
-    ): WorldBuildResult {
-    const worldGroup = new THREE.Group();
-
-    // 1. Sculpted 240x240 Tropical Island Terrain
-    const terrainGeo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, 148, 148);
-    terrainGeo.rotateX(-Math.PI / 2);
-
-    const posAttr = terrainGeo.attributes.position as THREE.BufferAttribute;
-    const count = posAttr.count;
-    const colors = new Float32Array(count * 3);
-
-    for (let i = 0; i < count; i++) {
-    const x = posAttr.getX(i);
-    const z = posAttr.getZ(i);
-    posAttr.setY(i, getIslandGroundHeight(x, z));
-    }
-    terrainGeo.computeVertexNormals();
-    const normAttr = terrainGeo.attributes.normal as THREE.BufferAttribute;
-
-    const sandCol = new THREE.Color(0xecd08b);
-    const trailCol = new THREE.Color(0xb88958);
-    const grassCol = new THREE.Color(0x2f993b);
-    const lushCol = new THREE.Color(0x1d6b2b);
-    const cliffCol = new THREE.Color(0x615242);
-    const tmpCol = new THREE.Color();
-
-    for (let i = 0; i < count; i++) {
-    const x = posAttr.getX(i);
-    const y = posAttr.getY(i);
-    const z = posAttr.getZ(i);
-    const ny = normAttr.getY(i);
-    const hillMix = THREE.MathUtils.clamp((y - 2.0) / 8.0, 0, 1);
-
-    if (y < 0.85) {
-    tmpCol.copy(sandCol);
-    } else if (ny < 0.82) {
-    tmpCol.copy(cliffCol).lerp(lushCol, Math.max(0, (ny - 0.55) * 1.3));
-    } else {
-    tmpCol.copy(grassCol).lerp(lushCol, hillMix * 0.65);
-
-    if (z > -28 && z < 52) {
-    const distTrail = Math.abs(x - getTrailCenterX(z));
-    const trailMask = 1 - THREE.MathUtils.smoothstep(distTrail, 1.5, 3.6);
-    tmpCol.lerp(trailCol, trailMask * 0.92);
-    }
-
-    if (Math.abs(x) < 9.5 && z < -30 && z > -70) {
-    tmpCol.lerp(new THREE.Color(0x9a896d), 0.76);
-    }
-    }
-
-    colors[i * 3] = tmpCol.r;
-    colors[i * 3 + 1] = tmpCol.g;
-    colors[i * 3 + 2] = tmpCol.b;
-    }
-    terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    const grassTex = createGrassTerrainTextures(maxAniso);
-    const terrainMesh = new THREE.Mesh(
-    terrainGeo,
-    applyNintendoRimLight(
-    new THREE.MeshStandardMaterial({
-    vertexColors: true,
-    map: grassTex.map,
-    normalMap: grassTex.normalMap,
-    normalScale: new THREE.Vector2(0.85, 0.85),
-    roughnessMap: grassTex.roughnessMap,
-    roughness: 0.9,
-    metalness: 0.02,
-    }),
-    { colorHex: 0xffe8a8, power: 3.4, strength: 0.16 },
-    ),
-    );
-    terrainMesh.receiveShadow = true;
-    worldGroup.add(terrainMesh);
-
-    // 2. Wooden Canyon Bridge + Rope Handrails, Pirate Cove Pier & Stone Stepping Pillars
-    const woodTex = createWoodPlankTextures(maxAniso);
-    const woodMat = applyNintendoRimLight(
-    new THREE.MeshStandardMaterial({
-    color: 0xdfb17d,
-    map: woodTex.map,
-    normalMap: woodTex.normalMap,
-    normalScale: new THREE.Vector2(0.9, 0.9),
-    roughnessMap: woodTex.roughnessMap,
-    roughness: 0.78,
-    }),
-    { colorHex: 0xffe4b3, power: 3.0, strength: 0.18 },
-    );
-    const ropeMat = new THREE.MeshStandardMaterial({ color: 0xc29e65, roughness: 0.9 });
-
-    const bridgeGroup = new THREE.Group();
-    const plankCount = 14;
-    for (let p = 0; p < plankCount; p++) {
-    const t = p / (plankCount - 1);
-    const pz = BRIDGE_BOUNDS.minZ + t * (BRIDGE_BOUNDS.maxZ - BRIDGE_BOUNDS.minZ);
-    const arch = Math.sin(t * Math.PI) * 0.55;
-    const plank = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.22, 0.62), woodMat);
-    plank.position.set(0, BRIDGE_BOUNDS.deckY + arch - 0.1, pz);
-    plank.castShadow = true;
-    plank.receiveShadow = true;
-    bridgeGroup.add(plank);
-    }
-    const bridgeLen = BRIDGE_BOUNDS.maxZ - BRIDGE_BOUNDS.minZ;
-    for (const sx of [-2.65, 2.65]) {
-    for (const sz of [BRIDGE_BOUNDS.minZ, 3.5, BRIDGE_BOUNDS.maxZ]) {
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 2.4, 8), woodMat);
-    post.position.set(sx, BRIDGE_BOUNDS.deckY + 0.3, sz);
-    post.castShadow = true;
-    bridgeGroup.add(post);
-    }
-    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, bridgeLen, 8), ropeMat);
-    rail.rotation.x = Math.PI / 2;
-    rail.position.set(sx, BRIDGE_BOUNDS.deckY + 1.38, 3.5);
-    bridgeGroup.add(rail);
-    }
-    worldGroup.add(bridgeGroup);
-
-    const dockMesh = new THREE.Mesh(new THREE.BoxGeometry(10.8, 0.32, 3.2), woodMat);
-    dockMesh.position.set(-18.8, 1.42, -4.0);
-    dockMesh.castShadow = true;
-    dockMesh.receiveShadow = true;
-    worldGroup.add(dockMesh);
-
-    const stoneTex = createTempleStoneTextures(maxAniso);
-    const templeStoneMat = applyNintendoRimLight(
-    new THREE.MeshStandardMaterial({
-    color: 0xe0d2b8,
-    map: stoneTex.map,
-    normalMap: stoneTex.normalMap,
-    normalScale: new THREE.Vector2(1.05, 1.05),
-    roughnessMap: stoneTex.roughnessMap,
-    roughness: 0.86,
-    metalness: 0.04,
-    }),
-    { colorHex: 0xffe4b8, power: 3.2, strength: 0.16 },
-    );
-    const templeMossMat = new THREE.MeshStandardMaterial({
-    color: 0x2c632b,
-    roughness: 0.9,
-    });
-
-    for (const p of STEPPING_PILLARS) {
-    const pillarMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(p.radius, p.radius * 1.12, p.topY + 2.5, 16),
-    templeStoneMat,
-    );
-    pillarMesh.position.set(p.x, (p.topY - 2.5) * 0.5, p.z);
-    pillarMesh.castShadow = true;
-    pillarMesh.receiveShadow = true;
-    worldGroup.add(pillarMesh);
-    }
-
-    // 3. Ancient Mayan Temple & Glowing Golden Portal
-    const templeGroup = new THREE.Group();
-    templeGroup.position.set(TEMPLE_PORTAL_POS.x, 8.4, TEMPLE_PORTAL_POS.z);
-
-    const tierWidths = [16.5, 13.0, 9.4, 5.8];
-    const tierHeights = [1.9, 2.2, 2.2, 2.6];
-    let accY = 0;
-    for (let i = 0; i < tierWidths.length; i++) {
-    const tier = new THREE.Mesh(
-    new THREE.BoxGeometry(tierWidths[i], tierHeights[i], 8.8 - i * 1.1),
-    templeStoneMat,
-    );
-    tier.position.set(0, accY + tierHeights[i] * 0.5 - 0.5, -2.6 - i * 0.35);
-    tier.castShadow = true;
-    tier.receiveShadow = true;
-    templeGroup.add(tier);
-    accY += tierHeights[i];
-    }
-
-    for (const sx of [-2.5, 2.5]) {
-    const pillar = new THREE.Mesh(
-    new THREE.BoxGeometry(1.5, 5.2, 1.85),
-    templeStoneMat,
-    );
-    pillar.position.set(sx, 2.25, 1.3);
-    pillar.castShadow = true;
-    pillar.receiveShadow = true;
-    templeGroup.add(pillar);
-    }
-    const lintel = new THREE.Mesh(
-    new THREE.BoxGeometry(7.4, 1.38, 2.25),
-    templeStoneMat,
-    );
-    lintel.position.set(0, 5.2, 1.3);
-    lintel.castShadow = true;
-    templeGroup.add(lintel);
-
-    const lintelMoss = new THREE.Mesh(
-    new THREE.BoxGeometry(5.8, 0.34, 2.35),
-    templeMossMat,
-    );
-    lintelMoss.position.set(0, 5.95, 1.3);
-    templeGroup.add(lintelMoss);
-
-    const portalMaterial = createPortalMaterial();
-    const portalPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.7, 4.6),
-    portalMaterial,
-    );
-    portalPlane.position.set(0, 2.2, 1.15);
-    templeGroup.add(portalPlane);
-
-    const portalCore = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.7, 3.7),
-    new THREE.MeshBasicMaterial({
-    color: 0xffd25e,
-    transparent: true,
-    opacity: 0.78,
-    side: THREE.DoubleSide,
-    }),
-    );
-    portalCore.position.set(0, 2.2, 0.95);
-    templeGroup.add(portalCore);
-
-    const portalLight = new THREE.PointLight(0xffb83d, 7.5, 28, 1.5);
-    portalLight.position.set(0, 2.4, 2.8);
-    templeGroup.add(portalLight);
-
-    for (let s = 0; s < 15; s++) {
-    const stepZ = -34.5 - s * 1.38;
-    const stepY = getIslandGroundHeight(0, stepZ);
-    const stepMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(8.2, 0.7, 1.45),
-    templeStoneMat,
-    );
-    stepMesh.position.set(0, stepY - 0.12, stepZ);
-    stepMesh.receiveShadow = true;
-    stepMesh.castShadow = true;
-    worldGroup.add(stepMesh);
-    }
-
-    for (const sx of [-5.2, 5.2]) {
-    const guardian = createCarvedGuardianHead(templeStoneMat, templeMossMat);
-    const gz = -34.0;
-    guardian.position.set(sx, getIslandGroundHeight(sx, gz) - 0.15, gz);
-    guardian.rotation.y = sx < 0 ? 0.25 : -0.25;
-    worldGroup.add(guardian);
-    }
-
-    // Carved Golden Sun Disc Crest on the Temple Pediment + Flaming Staircase Braziers
-    const templeGoldMat = new THREE.MeshPhysicalMaterial({
-    color: 0xffd54f,
-    emissive: 0xd98000,
-    emissiveIntensity: 0.55,
-    roughness: 0.22,
-    metalness: 0.88,
-    clearcoat: 0.65,
-    });
-    const sunRing = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.14, 10, 24), templeGoldMat);
-    sunRing.position.set(0, 6.8, 1.55);
-    templeGroup.add(sunRing);
-    const sunCore = new THREE.Mesh(
-    new THREE.SphereGeometry(0.48, 14, 12),
-    new THREE.MeshBasicMaterial({ color: 0xfff3b0 }),
-    );
-    sunCore.position.set(0, 6.8, 1.55);
-    templeGroup.add(sunCore);
-
-    const templeFlames: THREE.Mesh[] = [];
-    for (const bx of [-3.8, 3.8]) {
-    const bz = -33.6;
-    const by = getIslandGroundHeight(bx, bz);
-    const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, 1.15, 10), templeStoneMat);
-    pedestal.position.set(bx, by + 0.52, bz);
-    pedestal.castShadow = true;
-    worldGroup.add(pedestal);
-    const flame = new THREE.Mesh(
-    new THREE.ConeGeometry(0.32, 0.72, 8),
-    new THREE.MeshBasicMaterial({ color: 0xffc64d }),
-    );
-    flame.position.set(bx, by + 1.4, bz);
-    worldGroup.add(flame);
-    templeFlames.push(flame);
-    }
-    worldGroup.add(templeGroup);
-    // Volumetric Fresnel God-Rays illuminating key tropical landmarks
-    const sunBeamMat = createGodRayMaterial(0xfff0b8, 0.2);
-    for (const [rx, ry, rz, topR, botR, h, rzTilt] of [
-    [WATERFALL_POS.x, 12.5, WATERFALL_POS.z + 2.5, 2.8, 7.2, 24, 0.16],
-    [0, 14.5, 3.5, 3.0, 7.4, 24, 0.12],
-    [TEMPLE_PORTAL_POS.x, 19.0, TEMPLE_PORTAL_POS.z + 6.0, 3.8, 9.2, 26, 0.14],
-    ] as Array<[number, number, number, number, number, number, number]>) {
-    const beam = new THREE.Mesh(
-    new THREE.CylinderGeometry(topR, botR, h, 16, 1, true),
-    sunBeamMat,
-    );
-    beam.position.set(rx, ry, rz);
-    beam.rotation.z = rzTilt;
-    worldGroup.add(beam);
-    }
-
-    // 4. Cliff-Framed Cascading Jungle Waterfall
-    const cliffRockMat = new THREE.MeshStandardMaterial({
-    color: 0x5c5143,
-    bumpMap: stoneTex.bumpMap,
-    bumpScale: 0.1,
-    roughness: 0.9,
-    flatShading: true,
-    });
-
-    const wfGroup = new THREE.Group();
-    wfGroup.position.set(WATERFALL_POS.x, 0, WATERFALL_POS.z);
-    wfGroup.rotation.y = -0.35;
-
-    for (const [bx, by, bz, bw, bh, bd] of [
-    [-3.4, 6.2, -0.6, 2.6, 11.5, 3.2],
-    [3.4, 6.2, -0.6, 2.6, 11.5, 3.2],
-    [0, 11.4, -0.8, 8.6, 2.4, 3.6],
-    [0, 5.5, -1.3, 6.4, 11.0, 1.8],
-    ] as Array<[number, number, number, number, number, number]>) {
-    const cMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.65, 1), cliffRockMat);
-    cMesh.position.set(bx, by, bz);
-    cMesh.scale.set(bw, bh, bd);
-    cMesh.castShadow = true;
-    cMesh.receiveShadow = true;
-    wfGroup.add(cMesh);
-    }
-
-    const waterfallMaterial = createWaterfallMaterial();
-    const waterfallMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(5.0, 11.2, 1, 12),
-    waterfallMaterial,
-    );
-    waterfallMesh.position.set(0, 5.8, 0.35);
-    waterfallMesh.rotation.x = 0.12;
-    wfGroup.add(waterfallMesh);
-
-    const splashPool = new THREE.Mesh(
-    new THREE.CircleGeometry(4.4, 20),
-    new THREE.MeshBasicMaterial({
-    color: 0xcff8ff,
-    transparent: true,
-    opacity: 0.58,
-    depthWrite: false,
-    }),
-    );
-    splashPool.rotation.x = -Math.PI / 2;
-    splashPool.position.set(0, 0.28, 1.7);
-    wfGroup.add(splashPool);
-    worldGroup.add(wfGroup);
-
-    // 5. Giant Bouncy Mushrooms
-    const stemMat = new THREE.MeshStandardMaterial({ color: 0xf7eedc, roughness: 0.75 });
-    const spotMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 });
-    const mushroomVisuals: MushroomVisual[] = mushroomsDef.map((m) => {
-    const group = new THREE.Group();
-    group.position.set(m.x, m.y, m.z);
-
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.52, 1.25, 12), stemMat);
-    stem.position.y = 0.62;
-    stem.castShadow = true;
-    group.add(stem);
-
-    const capGroup = new THREE.Group();
-    capGroup.position.y = 1.25;
-    const cap = new THREE.Mesh(
-    new THREE.SphereGeometry(m.radius, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55),
-    new THREE.MeshStandardMaterial({ color: m.capColor, roughness: 0.45 }),
-    );
-    cap.scale.set(1.0, 0.68, 1.0);
-    cap.castShadow = true;
-    capGroup.add(cap);
-
-    for (let s = 0; s < 6; s++) {
-    const a = (s / 6) * Math.PI * 2;
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), spotMat);
-    dot.position.set(Math.cos(a) * (m.radius * 0.58), 0.42, Math.sin(a) * (m.radius * 0.58));
-    capGroup.add(dot);
-    }
-
-    group.add(capGroup);
-    worldGroup.add(group);
-    return { id: m.id, group, capGroup, baseY: m.y, bounceAnim: 0 };
-    });
-
-    // 6. Composite Tropical Palm Trees & Lush Layered Canopy Jungle Trees
-    const palmBarkTex = createPalmBarkTextures(maxAniso);
-    const trunkMat = new THREE.MeshStandardMaterial({
-    color: 0xd9c2a8,
-    map: palmBarkTex.map,
-    normalMap: palmBarkTex.normalMap,
-    normalScale: new THREE.Vector2(0.85, 0.85),
-    roughness: 0.88,
-    });
-    const leafFrondTex = createLeafFrondTextures(maxAniso);
-    const frondMat = applyNintendoRimLight(
-    new THREE.MeshStandardMaterial({
-    color: 0xd8f5c8,
-    map: leafFrondTex.map,
-    normalMap: leafFrondTex.normalMap,
-    normalScale: new THREE.Vector2(0.75, 0.75),
-    roughness: 0.6,
-    side: THREE.DoubleSide,
-    }),
-    { colorHex: 0xffe885, power: 2.5, strength: 0.28 },
-    );
-    const palmCrowns: THREE.Group[] = [];
-    const frondShape = new THREE.Shape();
-    frondShape.moveTo(0, 0);
-    frondShape.quadraticCurveTo(1.2, 0.38, 2.85, -0.45);
-    frondShape.quadraticCurveTo(1.45, -0.02, 0, -0.08);
-    frondShape.closePath();
-
-    const frondGeo = new THREE.ExtrudeGeometry(frondShape, {
-    depth: 0.34,
-    bevelEnabled: true,
-    bevelThickness: 0.04,
-    bevelSize: 0.06,
-    bevelSegments: 1,
-    });
-    frondGeo.translate(0, 0, -0.17);
-
-    function addPalmTree(x: number, z: number, scale: number, leanYaw: number): void {
-    const groundY = getIslandGroundHeight(x, z);
-    if (groundY < 0.7) return;
-    const tree = new THREE.Group();
-    tree.position.set(x, groundY - 0.15, z);
-    tree.scale.setScalar(scale);
-
-    let curY = 0;
-    let curOff = 0;
-    const dirX = Math.cos(leanYaw);
-    const dirZ = Math.sin(leanYaw);
-    for (let i = 0; i < 5; i++) {
-    const segH = 1.05;
-    const seg = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.21 - i * 0.028, 0.24 - i * 0.028, segH, 8),
-    trunkMat,
-    );
-    curOff += 0.14 * (i * 0.45);
-    seg.position.set(dirX * curOff, curY + segH * 0.5, dirZ * curOff);
-    seg.rotation.z = -dirX * (0.07 * i);
-    seg.rotation.x = dirZ * (0.07 * i);
-    seg.castShadow = true;
-    curY += segH * 0.94;
-    tree.add(seg);
-    }
-
-    const crown = new THREE.Group();
-    crown.position.set(dirX * curOff, curY, dirZ * curOff);
-    for (let f = 0; f < 10; f++) {
-    const pivot = new THREE.Group();
-    pivot.rotation.y = (f / 10) * Math.PI * 2;
-    const blade = new THREE.Mesh(frondGeo, frondMat);
-    blade.rotation.z = f % 2 === 0 ? 0.16 : 0.38;
-    blade.castShadow = true;
-    pivot.add(blade);
-    crown.add(pivot);
-    }
-    for (let c = 0; c < 3; c++) {
-    const coco = new THREE.Mesh(
-    new THREE.SphereGeometry(0.16, 8, 8),
-    new THREE.MeshStandardMaterial({ color: 0x523117, roughness: 0.72 }),
-    );
-    const ca = (c / 3) * Math.PI * 2;
-    coco.position.set(Math.cos(ca) * 0.22, -0.15, Math.sin(ca) * 0.22);
-    crown.add(coco);
-    }
-    tree.add(crown);
-    palmCrowns.push(crown);
-    worldGroup.add(tree);
-    }
-    (
-      [
-      [-7.5, 42.0, 1.15],
-      [8.2, 39.5, 1.12],
-      [-14.0, 29.0, 1.2],
-      [13.5, 27.5, 1.18],
-      [-8.2, 16.5, 1.05],
-      [9.4, 14.0, 1.22],
-      [-11.6, 5.2, 1.08],
-      [13.2, 2.5, 1.15],
-      [17.4, -7.5, 1.25],
-      [-14.8, -11.5, 1.05],
-      [-12.5, -24.5, 1.18],
-      [12.8, -25.0, 1.14],
-      [-15.2, -38.5, 1.25],
-      [15.4, -38.0, 1.22],
-      [25.0, 10.0, 1.18],
-      [-22.0, 14.0, 1.1],
-      ] as Array<[number, number, number]>
-      ).forEach(([px, pz, sc], idx) => {
-      addPalmTree(px, pz, sc, seededRand(idx + 1) * Math.PI * 2);
-      });
-
-      // Layered Nintendo Canopy Jungle Trees framing the grassy hills
-      const canopyWoodMat = new THREE.MeshStandardMaterial({
-      color: 0x5c3c22,
-      normalMap: palmBarkTex.normalMap,
-      roughness: 0.9,
-      });
-      const canopyLeafMat = applyNintendoRimLight(
-      new THREE.MeshStandardMaterial({ color: 0x2f943c, roughness: 0.68 }),
-      { colorHex: 0xd9ff85, power: 2.4, strength: 0.3 },
-      );
-      const canopyLightLeafMat = applyNintendoRimLight(
-      new THREE.MeshStandardMaterial({ color: 0x45b046, roughness: 0.65 }),
-      { colorHex: 0xfff099, power: 2.4, strength: 0.3 },
-      );
-      for (const [tx, tz, tsc] of [
-      [-19, 25, 1.15],
-      [18, 22, 1.2],
-      [-21, -18, 1.25],
-      [22, -18, 1.25],
-      [-16, -46, 1.18],
-      [16, -46, 1.18],
-      [29, 2, 1.15],
-      [-27, -30, 1.2],
-      ] as Array<[number, number, number]>) {
-      const ty = getIslandGroundHeight(tx, tz);
-      if (ty < 1.2) continue;
-      const jTree = new THREE.Group();
-      jTree.position.set(tx, ty - 0.15, tz);
-      jTree.scale.setScalar(tsc);
-
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.52, 4.2, 9), canopyWoodMat);
-      trunk.position.y = 2.0;
-      trunk.castShadow = true;
-      jTree.add(trunk);
-
-      for (const [cx, cy, cz, cr, isLight] of [
-      [0, 4.5, 0, 2.25, false],
-      [-1.3, 3.9, 0.6, 1.55, true],
-      [1.35, 3.85, -0.5, 1.6, false],
-      [0.3, 4.1, 1.3, 1.5, true],
-      [-0.4, 5.4, -0.2, 1.65, true],
-      ] as Array<[number, number, number, number, boolean]>) {
-      const puff = new THREE.Mesh(
-      new THREE.SphereGeometry(cr, 12, 10),
-      isLight ? canopyLightLeafMat : canopyLeafMat,
-      );
-      puff.position.set(cx, cy, cz);
-      puff.scale.set(1.08, 0.84, 1.08);
-      puff.castShadow = true;
-      puff.receiveShadow = true;
-      jTree.add(puff);
-      }
-      worldGroup.add(jTree);
-      }
-
-      // 7. Instanced Basalt Rocks & Ferns
-      const rocks = new THREE.InstancedMesh(
-      new THREE.DodecahedronGeometry(1.0, 1),
-      new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      bumpMap: stoneTex.bumpMap,
-      bumpScale: 0.08,
-      roughness: 0.92,
-      flatShading: true,
-      }),
-      56,
-      );
-      rocks.castShadow = true;
-      rocks.receiveShadow = true;
-      const dummy = new THREE.Object3D();
-      const tint = new THREE.Color();
-      let rockIdx = 0;
-
-      for (let i = 0; i < 110 && rockIdx < 56; i++) {
-      const a = seededRand(i * 3.1 + 4) * Math.PI * 2;
-      const r = 10 + seededRand(i * 5.7 + 2) * 46;
-      const rx = Math.cos(a) * r + 2;
-      const rz = Math.sin(a) * r - 4;
-      if (rz > -28 && rz < 50 && Math.abs(rx - getTrailCenterX(rz)) < 4.5) continue;
-      if (Math.abs(rx) < 8.5 && rz < -28 && rz > -68) continue;
-      const ry = getIslandGroundHeight(rx, rz);
-      if (ry < 0.4) continue;
-
-      const sx = 0.65 + seededRand(i * 7.1) * 1.45;
-      const sy = 0.45 + seededRand(i * 2.3) * 0.95;
-      const sz = 0.65 + seededRand(i * 9.4) * 1.4;
-      dummy.position.set(rx, ry + sy * 0.24, rz);
-      dummy.rotation.set(seededRand(i) * 0.5, seededRand(i + 11) * Math.PI * 2, seededRand(i + 23) * 0.5);
-      dummy.scale.set(sx, sy, sz);
-      dummy.updateMatrix();
-      rocks.setMatrixAt(rockIdx, dummy.matrix);
-      const shade = 0.18 + seededRand(i + 41) * 0.1;
-      tint.setRGB(shade, shade * 0.92, shade * 0.78);
-      rocks.setColorAt(rockIdx, tint);
-      rockIdx++;
-      }
-      rocks.count = rockIdx;
-      rocks.computeBoundingSphere();
-      worldGroup.add(rocks);
-
-      const leafShape = new THREE.Shape();
-      leafShape.moveTo(0, 0);
-      leafShape.quadraticCurveTo(0.22, 0.45, 0.02, 1.15);
-      leafShape.quadraticCurveTo(-0.22, 0.45, 0, 0);
-      const singleLeafBase = new THREE.ExtrudeGeometry(leafShape, { depth: 0.03, bevelEnabled: false });
-      singleLeafBase.rotateX(Math.PI * 0.34);
-      const leafParts: THREE.BufferGeometry[] = [];
-      for (let l = 0; l < 7; l++) {
-      const g = singleLeafBase.clone();
-      g.rotateY((l / 7) * Math.PI * 2);
-      leafParts.push(g);
-      }
-      const ferns = new THREE.InstancedMesh(
-      mergeGeometries(leafParts) || singleLeafBase,
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.72, side: THREE.DoubleSide }),
-      85,
-      );
-      ferns.castShadow = true;
-      ferns.receiveShadow = true;
-      let fernIdx = 0;
-      for (let i = 0; i < 160 && fernIdx < 85; i++) {
-      const a = seededRand(i * 4.3 + 9) * Math.PI * 2;
-      const r = 6 + seededRand(i * 6.2 + 5) * 44;
-      const fx = Math.cos(a) * r + 2;
-      const fz = Math.sin(a) * r - 4;
-      if (fz > -28 && fz < 50 && Math.abs(fx - getTrailCenterX(fz)) < 3.6) continue;
-      if (Math.abs(fx) < 7.5 && fz < -28 && fz > -68) continue;
-      const fy = getIslandGroundHeight(fx, fz);
-      if (fy < 1.2) continue;
-
-      const sc = 0.75 + seededRand(i * 1.9) * 0.9;
-      dummy.position.set(fx, fy - 0.05, fz);
-      dummy.rotation.set((seededRand(i + 5) - 0.5) * 0.18, seededRand(i + 3) * Math.PI, (seededRand(i + 8) - 0.5) * 0.18);
-      dummy.scale.set(sc, sc * 0.95, sc);
-      dummy.updateMatrix();
-      ferns.setMatrixAt(fernIdx, dummy.matrix);
-      tint.setHSL(0.3 + (seededRand(i + 19) - 0.5) * 0.05, 0.66, 0.17 + seededRand(i + 29) * 0.1);
-      ferns.setColorAt(fernIdx, tint);
-      fernIdx++;
-      }
-      ferns.count = fernIdx;
-      ferns.computeBoundingSphere();
-      worldGroup.add(ferns);
-      // 8. Soft Rim-Lit Clouds + Instanced Wind-Swaying Grass & Wildflowers
-      const cloudMat = applyNintendoRimLight(
-      new THREE.MeshStandardMaterial({
-      color: 0xf4f8fc,
-      roughness: 0.94,
-      emissive: 0xffe8c4,
-      emissiveIntensity: 0.08,
-      }),
-      { colorHex: 0xfff5d6, power: 2.2, strength: 0.35 },
-      );
-      const clouds: THREE.Group[] = [];
-      for (const [cx, cy, cz, cs] of [
-      [-46, 30, -68, 1.45],
-      [22, 35, -82, 1.7],
-      [58, 28, -36, 1.35],
-      [-58, 26, 18, 1.3],
-      [38, 31, 42, 1.4],
-      ] as Array<[number, number, number, number]>) {
-      const cg = new THREE.Group();
-      cg.position.set(cx, cy, cz);
-      cg.scale.setScalar(cs);
-      for (const [px, py, pz, pr] of [
-      [0, 0, 0, 3.2],
-      [-2.8, -0.4, 0.4, 2.3],
-      [2.9, -0.3, -0.3, 2.5],
-      [1.1, 1.1, 0.2, 2.2],
-      [-1.3, 0.9, -0.3, 2.0],
-      ] as Array<[number, number, number, number]>) {
-      const puff = new THREE.Mesh(new THREE.SphereGeometry(pr, 12, 10), cloudMat);
-      puff.position.set(px, py, pz);
-      cg.add(puff);
-      }
-      clouds.push(cg);
-      worldGroup.add(cg);
-      }
-
-      const windUniform = { value: 0 };
-      createTropicalGrassAndFlowers(
-      worldGroup,
-      getIslandGroundHeight,
-      getTrailCenterX,
-      windUniform,
-      );
-
-      const motes = createAmbientMotesPool({
-      count: 180,
-      boundsX: [-60, 60],
-      boundsY: [1.5, 18.0],
-      boundsZ: [-62, 55],
-      primaryHex: 0xfff3a8,
-      secondaryHex: 0xffb7d5,
-      size: 0.34,
-      opacity: 0.72,
-      speed: 0.75,
-      });
-      worldGroup.add(motes.points);
-
-      // 9. Stars, Chests, Wind Rings, NPCs, Animals & Sparkles
-      const starVisuals = createStarVisuals(worldGroup, starsDef);
-      const chestVisuals = gemsDef.map((g) => {
-      const cv = createBiblicalTreasureChest(g, woodMat);
-      worldGroup.add(cv.group);
-      return cv;
-      });
-      const windRingVisuals = createWindRingVisuals(worldGroup, windRingsDef);
-      const npcVisuals = npcsDef.map((n) => {
-      const nv = createFriendlyNpcMesh(n);
-      worldGroup.add(nv.group);
-      return nv;
-      });
-      const animals = buildIslandAnimals(worldGroup);
-
-      const sparkles = createSparklePool(280);
-      worldGroup.add(sparkles.points);
-      let mistTimer = 0;
-
-      function update(t: number, dt: number, portalAwakened: boolean): void {
-      waterfallMaterial.uniforms.uTime.value = t;
-      sunBeamMat.uniforms.uTime.value = t;
-      windUniform.value = t;
-      motes.update(t, dt);
-
-      for (let i = 0; i < templeFlames.length; i++) {
-      templeFlames[i].scale.set(1, 0.85 + Math.sin(t * 15 + i * 2.1) * 0.22, 1);
-      }
-
-      for (let i = 0; i < palmCrowns.length; i++) {
-      palmCrowns[i].rotation.z = Math.sin(t * 1.3 + i) * 0.045;
-      palmCrowns[i].rotation.x = Math.cos(t * 1.1 + i * 0.7) * 0.035;
-      }
-
-      for (let i = 0; i < clouds.length; i++) {
-      clouds[i].position.x += dt * (0.35 + (i % 3) * 0.12);
-      if (clouds[i].position.x > 95) clouds[i].position.x = -95;
-      }
-
-      for (const mv of mushroomVisuals) {
-      if (mv.bounceAnim > 0) {
-      mv.bounceAnim = Math.max(0, mv.bounceAnim - dt * 3.5);
-      const s = 1 + Math.sin(mv.bounceAnim * Math.PI * 3) * 0.28 * mv.bounceAnim;
-      mv.capGroup.scale.set(s, 1 / s, s);
-      } else {
-      mv.capGroup.scale.set(1, 1, 1);
-      }
-      }
-
-      for (const av of animals) {
-      const aTime = t * av.speed + av.phase;
-      if (av.kind === 'dolphin') {
-      const cycle = aTime % (Math.PI * 2);
-      av.group.position.x = av.originX + Math.cos(aTime * 0.5) * av.radius;
-      av.group.position.z = av.originZ + Math.sin(aTime * 0.5) * av.radius;
-      av.group.position.y = Math.max(-0.8, Math.sin(cycle) * 2.4 - 0.3);
-      av.group.rotation.y = -aTime * 0.5;
-      av.group.rotation.x = -Math.cos(cycle) * 0.55;
-      } else if (av.kind === 'crab') {
-      av.group.position.x = av.originX + Math.sin(aTime) * av.radius;
-      av.group.rotation.z = Math.sin(aTime * 4) * 0.12;
-      } else if (av.kind === 'lamb') {
-      const wx = av.originX + Math.cos(aTime * 0.6) * av.radius;
-      const wz = av.originZ + Math.sin(aTime * 0.6) * av.radius;
-      av.group.position.set(
-      wx,
-      getIslandGroundHeight(wx, wz) + Math.abs(Math.sin(aTime * 3.2)) * 0.08,
-      wz,
-      );
-      av.group.rotation.y = -aTime * 0.6 + Math.PI;
-      } else if (av.kind === 'bird') {
-      av.group.position.x = av.originX + Math.cos(aTime) * av.radius;
-      av.group.position.z = av.originZ + Math.sin(aTime) * av.radius;
-      av.group.position.y = av.originY + Math.sin(aTime * 2.1) * 0.55;
-      av.group.rotation.y = -aTime;
-      const flap = Math.sin(t * 11 + av.phase) * 0.55;
-      if (av.leftWing) av.leftWing.rotation.z = flap;
-      if (av.rightWing) av.rightWing.rotation.z = -flap;
-      }
-      }
-
-      mistTimer -= dt;
-      if (mistTimer <= 0) {
-      mistTimer = 0.12;
-      sparkles.emit(
-      WATERFALL_POS.x + 0.4,
-      1.1,
-      WATERFALL_POS.z + 1.5,
-      2,
-      3.2,
-      1.4,
-      );
-      }
-
-      animateSharedWorldEntities(
-      t,
-      dt,
-      starVisuals,
-      chestVisuals,
-      windRingVisuals,
-      npcVisuals,
-      portalMaterial,
-      portalCore,
-      portalLight,
-      portalAwakened,
-      );
-      sparkles.update(dt);
-      }
-
-      return {
-      worldGroup,
-      portalMaterial,
-      portalCore,
-      portalLight,
-      starVisuals,
-      chestVisuals,
-      mushroomVisuals,
-      windRingVisuals,
-      npcVisuals,
-      sparkles,
-      update,
-      };
-      }
-    
+worldGroup: THREE.Group,
+windRingsDef: WindRingDef[],
+ringColorHex = 0xffd54f,
+innerColorHex = 0x6ef7ff,
+): WindRingVisual[] {
+return windRingsDef.map((r) => {
+const group = new THREE.Group();
+group.position.set(r.x, r.y, r.z);
+
+const outerRing = new THREE.Mesh(
+new THREE.TorusGeometry(r.radius * 0.85, 0.14, 10, 32),
+new THREE.MeshStandardMaterial({
+color: ringColorHex,
+emissive: ringColorHex,
+emissiveIntensity: 0.45,
+roughness: 0.22,
+}),
+);
+group.add(outerRing);
+
+const innerRing = new THREE.Mesh(
+new THREE.TorusGeometry(r.radius * 0.68, 0.06, 8, 28),
+new THREE.MeshBasicMaterial({
+color: innerColorHex,
+transparent: true,
+opacity: 0.8,
+}),
+);
+group.add(innerRing);
+
+worldGroup.add(group);
+return {
+id: r.id,
+group,
+outerRing,
+innerRing,
+passed: false,
+};
+});
+}
+
+export function createBiblicalArtifactMesh(
+artifactType: BiblicalArtifactType,
+): THREE.Group {
+const g = new THREE.Group();
+
+const goldMat = new THREE.MeshPhysicalMaterial({
+color: 0xffd54f,
+emissive: 0xd98200,
+emissiveIntensity: 0.62,
+roughness: 0.16,
+metalness: 0.9,
+clearcoat: 0.72,
+clearcoatRoughness: 0.12,
+});
+const flameMat = new THREE.MeshBasicMaterial({ color: 0xfff3b0 });
+const leatherMat = new THREE.MeshStandardMaterial({ color: 0x6d2c1b, roughness: 0.55 });
+const clayMat = new THREE.MeshStandardMaterial({ color: 0xb8653b, roughness: 0.7 });
+const pageMat = new THREE.MeshStandardMaterial({ color: 0xfff8e7, roughness: 0.75 });
+const crystalMat = new THREE.MeshPhysicalMaterial({
+color: 0x45efe2,
+emissive: 0x1ba89c,
+emissiveIntensity: 0.74,
+roughness: 0.12,
+clearcoat: 1.0,
+clearcoatRoughness: 0.08,
+});
+
+if (artifactType === 'menorah') {
+const base = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 0.12, 14), goldMat);
+g.add(base);
+const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.065, 0.78, 12), goldMat);
+stem.position.y = 0.42;
+g.add(stem);
+
+for (const r of [0.22, 0.36, 0.5]) {
+const branch = new THREE.Mesh(
+new THREE.TorusGeometry(r, 0.036, 8, 20, Math.PI),
+goldMat,
+);
+branch.rotation.z = Math.PI;
+branch.position.y = 0.78;
+g.add(branch);
+}
+
+for (const lx of [-0.5, -0.36, -0.22, 0, 0.22, 0.36, 0.5]) {
+const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.03, 0.07, 8), goldMat);
+cup.position.set(lx, 0.81, 0);
+g.add(cup);
+const flame = new THREE.Mesh(new THREE.ConeGeometry(0.042, 0.13, 8), flameMat);
+flame.position.set(lx, 0.9, 0);
+g.add(flame);
+}
+} else if (artifactType === 'bible') {
+for (const s of [-1, 1]) {
+const cover = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 0.56), leatherMat);
+cover.position.set(s * 0.2, 0.25, 0);
+cover.rotation.z = s * -0.18;
+g.add(cover);
+
+const page = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.07, 0.51), pageMat);
+page.position.set(s * 0.19, 0.29, 0);
+page.rotation.z = s * -0.18;
+g.add(page);
+}
+const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.44, 0.06), goldMat);
+vBar.position.set(0, 0.62, 0);
+g.add(vBar);
+const hBar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.06), goldMat);
+hBar.position.set(0, 0.68, 0);
+g.add(hBar);
+} else if (artifactType === 'ark') {
+const arkBox = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.42, 0.44), goldMat);
+arkBox.position.y = 0.25;
+g.add(arkBox);
+for (const s of [-0.15, 0.15]) {
+const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.36, 0.07), crystalMat);
+tablet.position.set(s, 0.62, 0);
+g.add(tablet);
+}
+} else if (artifactType === 'oil_lamp') {
+// Ancient curved Herodian oil lamp with glowing flame
+const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10), goldMat);
+bowl.scale.set(1.25, 0.58, 0.9);
+bowl.position.y = 0.32;
+g.add(bowl);
+const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.11, 0.34, 10), goldMat);
+spout.rotation.z = -Math.PI * 0.42;
+spout.position.set(0.32, 0.38, 0);
+g.add(spout);
+const handle = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.032, 8, 14), goldMat);
+handle.position.set(-0.32, 0.4, 0);
+g.add(handle);
+const flame = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.22, 10), flameMat);
+flame.position.set(0.45, 0.56, 0);
+g.add(flame);
+} else if (artifactType === 'scroll_jar') {
+// Dead Sea clay jar with parchment scrolls emerging
+const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.62, 14), clayMat);
+jar.position.y = 0.35;
+g.add(jar);
+const rim = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.04, 8, 16), clayMat);
+rim.rotation.x = Math.PI / 2;
+rim.position.y = 0.66;
+g.add(rim);
+for (const sx of [-0.08, 0.09]) {
+const scroll = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.46, 12), pageMat);
+scroll.position.set(sx, 0.72, 0);
+scroll.rotation.z = sx * -1.4;
+g.add(scroll);
+const seal = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.078, 0.06, 12), goldMat);
+seal.position.set(sx, 0.72, 0);
+seal.rotation.z = sx * -1.4;
+g.add(seal);
+}
+} else if (artifactType === 'cornerstone') {
+// Beveled glowing Cornerstone block with radiant golden cross
+const cube = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.56, 0.56), crystalMat);
+cube.position.y = 0.44;
+cube.rotation.set(0.25, Math.PI / 4, 0);
+g.add(cube);
+const vCross = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.46, 0.62), goldMat);
+vCross.position.y = 0.44;
+vCross.rotation.set(0.25, Math.PI / 4, 0);
+g.add(vCross);
+const hCross = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.1, 0.62), goldMat);
+hCross.position.y = 0.48;
+hCross.rotation.set(0.25, Math.PI / 4, 0);
+g.add(hCross);
+} else if (artifactType === 'manna') {
+const chalice = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.16, 0.42, 14), goldMat);
+chalice.position.y = 0.34;
+g.add(chalice);
+const bread = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 12), flameMat);
+bread.scale.set(1.1, 0.75, 1.1);
+bread.position.y = 0.58;
+g.add(bread);
+} else if (artifactType === 'staff_harp') {
+// Shepherd's crook paired with David's golden harp
+const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.78, 10), goldMat);
+pole.position.set(-0.22, 0.42, 0);
+g.add(pole);
+const crook = new THREE.Mesh(
+new THREE.TorusGeometry(0.13, 0.038, 8, 16, Math.PI * 1.35),
+goldMat,
+);
+crook.position.set(-0.1, 0.8, 0);
+g.add(crook);
+const frame = new THREE.Mesh(
+new THREE.TorusGeometry(0.24, 0.04, 8, 18, Math.PI * 1.35),
+goldMat,
+);
+frame.position.set(0.22, 0.45, 0);
+g.add(frame);
+for (let s = -1; s <= 1; s++) {
+const str = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.36, 6), flameMat);
+str.position.set(0.22 + s * 0.07, 0.45, 0);
+g.add(str);
+}
+} else {
+// 'water_crown': Living Water Amphora topped with Golden Crown of Life
+const jar = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 12), crystalMat);
+jar.scale.set(1, 1.2, 1);
+jar.position.y = 0.34;
+g.add(jar);
+const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.2, 12), goldMat);
+crown.position.y = 0.72;
+g.add(crown);
+const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), flameMat);
+pearl.position.y = 0.9;
+g.add(pearl);
+}
+
+return g;
+}
+
+export function createBiblicalTreasureChest(
+def: SunGemDef,
+woodMat: THREE.Material,
+): BiblicalChestVisual {
+const group = new THREE.Group();
+group.position.set(def.x, def.y - 0.65, def.z);
+
+const goldTrimMat = new THREE.MeshPhysicalMaterial({
+color: 0xffcf40,
+emissive: 0xb86e00,
+emissiveIntensity: 0.48,
+roughness: 0.2,
+metalness: 0.88,
+clearcoat: 0.6,
+});
+
+const baseBox = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.68, 0.86), woodMat);
+baseBox.position.y = 0.34;
+baseBox.castShadow = true;
+baseBox.receiveShadow = true;
+group.add(baseBox);
+
+for (const sx of [-0.42, 0.42]) {
+const strap = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.7, 0.9), goldTrimMat);
+strap.position.set(sx, 0.34, 0);
+group.add(strap);
+}
+const lockPlate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.26, 0.08), goldTrimMat);
+lockPlate.position.set(0, 0.52, 0.44);
+group.add(lockPlate);
+
+const lidPivot = new THREE.Group();
+lidPivot.position.set(0, 0.68, -0.42);
+lidPivot.rotation.x = -0.35;
+
+const lidVault = new THREE.Mesh(
+new THREE.CylinderGeometry(0.43, 0.43, 1.25, 12, 1, false, 0, Math.PI),
+woodMat,
+);
+lidVault.rotation.z = Math.PI / 2;
+lidVault.position.set(0, 0, 0.42);
+lidVault.castShadow = true;
+lidPivot.add(lidVault);
+
+for (const sx of [-0.42, 0.42]) {
+const lidStrap = new THREE.Mesh(
+new THREE.CylinderGeometry(0.45, 0.45, 0.11, 12, 1, false, 0, Math.PI),
+goldTrimMat,
+);
+lidStrap.rotation.z = Math.PI / 2;
+lidStrap.position.set(sx, 0, 0.42);
+lidPivot.add(lidStrap);
+}
+group.add(lidPivot);
+
+const artifactGroup = createBiblicalArtifactMesh(def.artifactType);
+artifactGroup.position.set(0, 0.88, 0);
+artifactGroup.scale.setScalar(1.25);
+group.add(artifactGroup);
+
+const ringMesh = new THREE.Mesh(
+new THREE.TorusGeometry(1.25, 0.048, 8, 28),
+new THREE.MeshBasicMaterial({
+color: def.colorHex,
+transparent: true,
+opacity: 0.82,
+side: THREE.DoubleSide,
+}),
+);
+ringMesh.rotation.x = Math.PI * 0.5;
+ringMesh.position.y = 0.25;
+group.add(ringMesh);
+
+const beamMesh = new THREE.Mesh(
+new THREE.CylinderGeometry(0.46, 1.05, 6.8, 16, 1, true),
+createGodRayMaterial(def.colorHex, 0.2),
+);
+beamMesh.position.y = 3.35;
+group.add(beamMesh);
+
+return {
+id: def.id,
+def,
+group,
+lidPivot,
+artifactGroup,
+ringMesh,
+beamMesh,
+baseY: def.y - 0.65,
+collected: false,
+openProgress: 0,
+};
+}
+
+export function createFriendlyNpcMesh(def: NpcDef): NpcVisual {
+const group = new THREE.Group();
+group.position.set(def.x, def.y, def.z);
+group.rotation.y = def.yaw;
+
+const skinMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({ color: 0xe8b48a, roughness: 0.62 }),
+{ colorHex: 0xffe4b8, power: 2.8, strength: 0.25 },
+);
+const robePalette: Record<NpcDef['id'], { robe: number; trim: number }> = {
+captain: { robe: 0xb8292f, trim: 0xffcf40 },
+mateo: { robe: 0x2a7b4c, trim: 0xd98a36 },
+ixchel: { robe: 0xf2e3b6, trim: 0x38b6c4 },
+noe: { robe: 0x3f5e8a, trim: 0xffb300 },
+ester: { robe: 0x874da8, trim: 0xffd56b },
+samuel: { robe: 0xf0e4cf, trim: 0x62d9f7 },
+miriam: { robe: 0x1e8f8a, trim: 0xffcf52 },
+david: { robe: 0xd97a2b, trim: 0xf5ecd5 },
+caleb: { robe: 0x8a4826, trim: 0xffcf40 },
+};
+const pal = robePalette[def.id];
+const tunicMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({ color: pal.robe, roughness: 0.74 }),
+{ colorHex: 0xfff0c8, power: 2.6, strength: 0.28 },
+);
+const trimMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({ color: pal.trim, roughness: 0.42 }),
+{ colorHex: 0xffffff, power: 2.6, strength: 0.22 },
+);
+const bootMat = new THREE.MeshStandardMaterial({ color: 0x3b2314, roughness: 0.7 });
+const hairWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf2f0eb, roughness: 0.8 });
+const npcEyeMat = new THREE.MeshPhysicalMaterial({
+color: 0x1a1410,
+roughness: 0.1,
+clearcoat: 0.9,
+});
+
+for (const s of [-0.12, 0.12]) {
+const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.065, 0.55, 10), bootMat);
+leg.position.set(s, 0.275, 0);
+leg.castShadow = true;
+group.add(leg);
+}
+
+const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.28, 0.72, 14), tunicMat);
+torso.position.y = 0.82;
+torso.castShadow = true;
+group.add(torso);
+
+const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.23, 0.09, 14), trimMat);
+belt.position.y = 0.72;
+group.add(belt);
+
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 14), skinMat);
+head.position.y = 1.38;
+head.castShadow = true;
+group.add(head);
+
+for (const s of [-0.065, 0.065]) {
+const eye = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), npcEyeMat);
+eye.position.set(s, 1.4, 0.182);
+group.add(eye);
+}
+
+if (def.id === 'captain') {
+const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.36, 0.12, 3), bootMat);
+hat.position.y = 1.56;
+group.add(hat);
+} else if (def.id === 'mateo') {
+const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.08, 16), trimMat);
+hat.position.y = 1.54;
+group.add(hat);
+} else if (def.id === 'noe') {
+// Miner helmet + glowing headlamp
+const helmet = new THREE.Mesh(
+new THREE.SphereGeometry(0.23, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55),
+trimMat,
+);
+helmet.position.y = 1.44;
+group.add(helmet);
+const lamp = new THREE.Mesh(
+new THREE.CylinderGeometry(0.06, 0.06, 0.08, 10),
+new THREE.MeshBasicMaterial({ color: 0xfff8b5 }),
+);
+lamp.rotation.x = Math.PI / 2;
+lamp.position.set(0, 1.53, 0.22);
+group.add(lamp);
+} else if (def.id === 'samuel' || def.id === 'caleb') {
+// Wise elder beard + shepherd/elder staff
+const beard = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.26, 10), hairWhiteMat);
+beard.rotation.x = Math.PI;
+beard.position.set(0, 1.21, 0.14);
+group.add(beard);
+const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 1.65, 8), bootMat);
+staff.position.set(-0.34, 0.84, 0.15);
+group.add(staff);
+} else if (def.id === 'miriam' || def.id === 'ixchel' || def.id === 'ester') {
+const circlet = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.032, 8, 18), trimMat);
+circlet.rotation.x = Math.PI / 2;
+circlet.position.y = 1.5;
+group.add(circlet);
+} else if (def.id === 'david') {
+// Shepherd headband + wooden shepherd crook
+const band = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.028, 8, 18), trimMat);
+band.rotation.x = Math.PI / 2;
+band.position.y = 1.49;
+group.add(band);
+const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.55, 8), bootMat);
+staff.position.set(-0.32, 0.8, 0.12);
+group.add(staff);
+}
+
+const leftArm = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.32, 6, 8), tunicMat);
+leftArm.position.set(-0.26, 0.92, 0);
+leftArm.rotation.z = 0.22;
+group.add(leftArm);
+
+const rightArmPivot = new THREE.Group();
+rightArmPivot.position.set(0.24, 1.08, 0);
+const rightArm = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.32, 6, 8), tunicMat);
+rightArm.position.set(0.06, 0.14, 0);
+rightArmPivot.add(rightArm);
+group.add(rightArmPivot);
+
+const markerMesh = new THREE.Mesh(
+new THREE.OctahedronGeometry(0.22, 0),
+new THREE.MeshStandardMaterial({
+color: 0xffe066,
+emissive: 0xff9d00,
+emissiveIntensity: 0.75,
+roughness: 0.2,
+}),
+);
+markerMesh.position.y = 2.08;
+group.add(markerMesh);
+
+return {
+id: def.id,
+def,
+group,
+rightArmPivot,
+markerMesh,
+baseY: def.y,
+};
+}
+
+export function animateSharedWorldEntities(
+t: number,
+dt: number,
+starVisuals: StarVisual[],
+chestVisuals: BiblicalChestVisual[],
+windRingVisuals: WindRingVisual[],
+npcVisuals: NpcVisual[],
+portalMaterial: THREE.ShaderMaterial,
+portalCore: THREE.Mesh,
+portalLight: THREE.PointLight,
+portalAwakened: boolean,
+): void {
+portalMaterial.uniforms.uTime.value = t;
+portalMaterial.uniforms.uAwakened.value = portalAwakened ? 1.0 : 0.35;
+(portalCore.material as THREE.MeshBasicMaterial).opacity = portalAwakened
+? 0.82
+: 0.25;
+portalLight.intensity =
+(portalAwakened ? 8.4 : 3.2) + Math.sin(t * 4.2) * 1.4;
+
+for (const sv of starVisuals) {
+if (sv.collected) continue;
+sv.starMesh.rotation.y = t * 1.9 + sv.id;
+sv.ringMesh.rotation.z = t * 1.4;
+sv.group.position.y = sv.baseY + Math.sin(t * 2.5 + sv.id) * 0.18;
+}
+
+for (const cv of chestVisuals) {
+cv.artifactGroup.rotation.y = t * 1.6;
+cv.ringMesh.rotation.z = t * 1.2;
+if (cv.collected) {
+cv.openProgress = Math.min(1, cv.openProgress + dt * 2.8);
+cv.lidPivot.rotation.x = -0.35 - cv.openProgress * 1.05;
+cv.artifactGroup.position.y =
+0.88 + cv.openProgress * 0.95 + Math.sin(t * 3.0) * 0.12;
+cv.artifactGroup.scale.setScalar(1.25 + cv.openProgress * 0.35);
+} else {
+cv.artifactGroup.position.y = 0.88 + Math.sin(t * 2.4) * 0.1;
+}
+}
+
+for (const wr of windRingVisuals) {
+wr.outerRing.rotation.z = t * 1.5 + wr.id;
+wr.innerRing.rotation.x = Math.sin(t * 2.2 + wr.id) * 0.35;
+wr.innerRing.rotation.y = t * 2.1;
+}
+
+for (const nv of npcVisuals) {
+nv.rightArmPivot.rotation.z = -2.35 + Math.sin(t * 4.2 + nv.baseY) * 0.35;
+nv.markerMesh.rotation.y = t * 2.4;
+nv.markerMesh.position.y = 2.08 + Math.sin(t * 3.2) * 0.12;
+}
+}
+
+function createCarvedGuardianHead(
+stoneMat: THREE.Material,
+mossMat: THREE.Material,
+): THREE.Group {
+const head = new THREE.Group();
+
+const block = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.85, 1.35), stoneMat);
+block.position.y = 0.92;
+block.castShadow = true;
+block.receiveShadow = true;
+head.add(block);
+
+const brow = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 1.42), stoneMat);
+brow.position.set(0, 1.48, 0.05);
+brow.castShadow = true;
+head.add(brow);
+
+const crown = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.38, 1.15), mossMat);
+crown.position.set(0, 1.98, 0);
+head.add(crown);
+
+for (const s of [-0.34, 0.34]) {
+const eyeSocket = new THREE.Mesh(
+new THREE.CylinderGeometry(0.16, 0.16, 0.14, 10),
+stoneMat,
+);
+eyeSocket.rotation.x = Math.PI / 2;
+eyeSocket.position.set(s, 1.14, 0.68);
+head.add(eyeSocket);
+}
+
+const nose = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.48, 0.24), stoneMat);
+nose.position.set(0, 0.92, 0.72);
+head.add(nose);
+
+const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.16, 0.14), stoneMat);
+mouth.position.set(0, 0.5, 0.67);
+head.add(mouth);
+
+return head;
+}
+
+interface IslandAnimal {
+kind: 'dolphin' | 'crab' | 'lamb' | 'bird';
+group: THREE.Group;
+leftWing?: THREE.Object3D;
+rightWing?: THREE.Object3D;
+originX: number;
+originY: number;
+originZ: number;
+phase: number;
+radius: number;
+speed: number;
+collider?: SolidCollider;
+}
+
+function buildIslandAnimals(worldGroup: THREE.Group): IslandAnimal[] {
+const animals: IslandAnimal[] = [];
+
+const dolphinMat = new THREE.MeshStandardMaterial({
+color: 0x4ba3d9,
+roughness: 0.32,
+metalness: 0.1,
+});
+for (const [dx, dz, phase] of [
+[-46, -24, 0],
+[-22, -38, 2.1],
+[42, 18, 4.2],
+] as Array<[number, number, number]>) {
+const dg = new THREE.Group();
+const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 1.05, 8, 12), dolphinMat);
+body.rotation.x = Math.PI / 2;
+dg.add(body);
+const fin = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.42, 6), dolphinMat);
+fin.position.set(0, 0.32, -0.1);
+fin.rotation.x = -0.35;
+dg.add(fin);
+dg.position.set(dx, -0.2, dz);
+worldGroup.add(dg);
+animals.push({
+kind: 'dolphin',
+group: dg,
+originX: dx,
+originY: -0.2,
+originZ: dz,
+phase,
+radius: 4.5,
+speed: 1.5,
+});
+}
+
+const crabMat = new THREE.MeshStandardMaterial({ color: 0xe63b2e, roughness: 0.55 });
+(
+[
+[-16, -1.8],
+[-19, 3.2],
+[12, 34],
+[-8, 38],
+] as Array<[number, number]>
+).forEach(([cx, cz], idx) => {
+const cg = new THREE.Group();
+const shell = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), crabMat);
+shell.scale.set(1.3, 0.55, 1.0);
+shell.position.y = 0.16;
+cg.add(shell);
+const cy = getIslandGroundHeight(cx, cz);
+cg.position.set(cx, cy, cz);
+worldGroup.add(cg);
+animals.push({
+kind: 'crab',
+group: cg,
+originX: cx,
+originY: cy,
+originZ: cz,
+phase: idx * 1.7,
+radius: 1.6,
+speed: 2.8,
+collider: {
+x: cx,
+z: cz,
+radius: 0.38,
+minY: cy - 0.25,
+maxY: cy + 0.45,
+kind: 'animal',
+},
+});
+});
+
+const woolMat = new THREE.MeshStandardMaterial({ color: 0xfaf6ee, roughness: 0.9 });
+const lambFaceMat = new THREE.MeshStandardMaterial({ color: 0x3b2d26, roughness: 0.7 });
+(
+[
+[-9.5, 28.0],
+[8.5, 24.5],
+[-11.0, 11.0],
+[12.5, -14.0],
+[-8.5, -26.5],
+] as Array<[number, number]>
+).forEach(([lx, lz], idx) => {
+const lg = new THREE.Group();
+const wool = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 10), woolMat);
+wool.scale.set(1.0, 0.9, 1.35);
+wool.position.y = 0.46;
+wool.castShadow = true;
+lg.add(wool);
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), lambFaceMat);
+head.position.set(0, 0.64, 0.44);
+lg.add(head);
+const crownWool = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), woolMat);
+crownWool.position.set(0, 0.78, 0.4);
+lg.add(crownWool);
+for (const sx of [-0.15, 0.15]) {
+for (const sz of [-0.24, 0.24]) {
+const leg = new THREE.Mesh(
+new THREE.CylinderGeometry(0.05, 0.045, 0.36, 8),
+lambFaceMat,
+);
+leg.position.set(sx, 0.18, sz);
+lg.add(leg);
+}
+}
+const ly = getIslandGroundHeight(lx, lz);
+lg.position.set(lx, ly, lz);
+worldGroup.add(lg);
+animals.push({
+kind: 'lamb',
+group: lg,
+originX: lx,
+originY: ly,
+originZ: lz,
+phase: idx * 1.3,
+radius: 1.4,
+speed: 0.85,
+collider: {
+x: lx,
+z: lz,
+radius: 0.62,
+minY: ly - 0.25,
+maxY: ly + 1.0,
+kind: 'animal',
+},
+});
+});
+
+const doveMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+const beakMat = new THREE.MeshStandardMaterial({ color: 0xffb300, roughness: 0.4 });
+(
+[
+[26, 13.5, -18, 6.5],
+[-18, 11.0, -14, 7.0],
+[0, 16.5, -46, 8.0],
+[8, 9.5, 16, 6.0],
+] as Array<[number, number, number, number]>
+).forEach(([bx, by, bz, rad], idx) => {
+const bg = new THREE.Group();
+const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.28, 6, 8), doveMat);
+torso.rotation.x = Math.PI / 2;
+bg.add(torso);
+const beak = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 6), beakMat);
+beak.rotation.x = Math.PI / 2;
+beak.position.z = 0.25;
+bg.add(beak);
+const leftWing = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.03, 0.22), doveMat);
+leftWing.position.set(-0.24, 0.04, 0);
+bg.add(leftWing);
+const rightWing = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.03, 0.22), doveMat);
+rightWing.position.set(0.24, 0.04, 0);
+bg.add(rightWing);
+bg.position.set(bx, by, bz);
+worldGroup.add(bg);
+animals.push({
+kind: 'bird',
+group: bg,
+leftWing,
+rightWing,
+originX: bx,
+originY: by,
+originZ: bz,
+phase: idx * 1.6,
+radius: rad,
+speed: 0.95,
+});
+});
+
+return animals;
+}
+
+export function buildIslandWorld(
+starsDef: MagicStarDef[],
+maxAniso: number,
+gemsDef: SunGemDef[],
+mushroomsDef: BouncyMushroomDef[],
+windRingsDef: WindRingDef[],
+npcsDef: NpcDef[],
+): WorldBuildResult {
+const worldGroup = new THREE.Group();
+const staticColliders: SolidCollider[] = [];
+
+// 1. Sculpted 240x240 Tropical Island Terrain
+const terrainGeo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, 148, 148);
+terrainGeo.rotateX(-Math.PI / 2);
+
+const posAttr = terrainGeo.attributes.position as THREE.BufferAttribute;
+const count = posAttr.count;
+const colors = new Float32Array(count * 3);
+
+for (let i = 0; i < count; i++) {
+const x = posAttr.getX(i);
+const z = posAttr.getZ(i);
+posAttr.setY(i, getIslandGroundHeight(x, z));
+}
+terrainGeo.computeVertexNormals();
+const normAttr = terrainGeo.attributes.normal as THREE.BufferAttribute;
+
+const sandCol = new THREE.Color(0xecd08b);
+const trailCol = new THREE.Color(0xb88958);
+const grassCol = new THREE.Color(0x2f993b);
+const lushCol = new THREE.Color(0x1d6b2b);
+const cliffCol = new THREE.Color(0x615242);
+const tmpCol = new THREE.Color();
+
+for (let i = 0; i < count; i++) {
+const x = posAttr.getX(i);
+const y = posAttr.getY(i);
+const z = posAttr.getZ(i);
+const ny = normAttr.getY(i);
+const hillMix = THREE.MathUtils.clamp((y - 2.0) / 8.0, 0, 1);
+
+if (y < 0.85) {
+tmpCol.copy(sandCol);
+} else if (ny < 0.82) {
+tmpCol.copy(cliffCol).lerp(lushCol, Math.max(0, (ny - 0.55) * 1.3));
+} else {
+tmpCol.copy(grassCol).lerp(lushCol, hillMix * 0.65);
+
+if (z > -28 && z < 52) {
+const distTrail = Math.abs(x - getTrailCenterX(z));
+const trailMask = 1 - THREE.MathUtils.smoothstep(distTrail, 1.5, 3.6);
+tmpCol.lerp(trailCol, trailMask * 0.92);
+}
+
+if (Math.abs(x) < 9.5 && z < -30 && z > -70) {
+tmpCol.lerp(new THREE.Color(0x9a896d), 0.76);
+}
+}
+
+colors[i * 3] = tmpCol.r;
+colors[i * 3 + 1] = tmpCol.g;
+colors[i * 3 + 2] = tmpCol.b;
+}
+terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+const grassTex = createGrassTerrainTextures(maxAniso);
+const terrainMesh = new THREE.Mesh(
+terrainGeo,
+applyNintendoRimLight(
+new THREE.MeshStandardMaterial({
+vertexColors: true,
+map: grassTex.map,
+normalMap: grassTex.normalMap,
+normalScale: new THREE.Vector2(0.85, 0.85),
+roughnessMap: grassTex.roughnessMap,
+roughness: 0.9,
+metalness: 0.02,
+}),
+{ colorHex: 0xffe8a8, power: 3.4, strength: 0.16 },
+),
+);
+terrainMesh.receiveShadow = true;
+worldGroup.add(terrainMesh);
+
+// 2. Wooden Canyon Bridge + Rope Handrails, Pirate Cove Pier & Stone Stepping Pillars
+const woodTex = createWoodPlankTextures(maxAniso);
+const woodMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({
+color: 0xdfb17d,
+map: woodTex.map,
+normalMap: woodTex.normalMap,
+normalScale: new THREE.Vector2(0.9, 0.9),
+roughnessMap: woodTex.roughnessMap,
+roughness: 0.78,
+}),
+{ colorHex: 0xffe4b3, power: 3.0, strength: 0.18 },
+);
+const ropeMat = new THREE.MeshStandardMaterial({ color: 0xc29e65, roughness: 0.9 });
+
+const bridgeGroup = new THREE.Group();
+const plankCount = 14;
+for (let p = 0; p < plankCount; p++) {
+const t = p / (plankCount - 1);
+const pz = BRIDGE_BOUNDS.minZ + t * (BRIDGE_BOUNDS.maxZ - BRIDGE_BOUNDS.minZ);
+const arch = Math.sin(t * Math.PI) * 0.55;
+const plank = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.22, 0.62), woodMat);
+plank.position.set(0, BRIDGE_BOUNDS.deckY + arch - 0.1, pz);
+plank.castShadow = true;
+plank.receiveShadow = true;
+bridgeGroup.add(plank);
+}
+const bridgeLen = BRIDGE_BOUNDS.maxZ - BRIDGE_BOUNDS.minZ;
+for (const sx of [-2.65, 2.65]) {
+for (const sz of [BRIDGE_BOUNDS.minZ, 3.5, BRIDGE_BOUNDS.maxZ]) {
+const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 2.4, 8), woodMat);
+post.position.set(sx, BRIDGE_BOUNDS.deckY + 0.3, sz);
+post.castShadow = true;
+bridgeGroup.add(post);
+staticColliders.push({
+x: sx,
+z: sz,
+radius: 0.25,
+minY: BRIDGE_BOUNDS.deckY - 0.4,
+maxY: BRIDGE_BOUNDS.deckY + 1.8,
+kind: 'structure',
+});
+}
+const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, bridgeLen, 8), ropeMat);
+rail.rotation.x = Math.PI / 2;
+rail.position.set(sx, BRIDGE_BOUNDS.deckY + 1.38, 3.5);
+bridgeGroup.add(rail);
+}
+worldGroup.add(bridgeGroup);
+
+const dockMesh = new THREE.Mesh(new THREE.BoxGeometry(10.8, 0.32, 3.2), woodMat);
+dockMesh.position.set(-18.8, 1.42, -4.0);
+dockMesh.castShadow = true;
+dockMesh.receiveShadow = true;
+worldGroup.add(dockMesh);
+
+const stoneTex = createTempleStoneTextures(maxAniso);
+const templeStoneMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({
+color: 0xe0d2b8,
+map: stoneTex.map,
+normalMap: stoneTex.normalMap,
+normalScale: new THREE.Vector2(1.05, 1.05),
+roughnessMap: stoneTex.roughnessMap,
+roughness: 0.86,
+metalness: 0.04,
+}),
+{ colorHex: 0xffe4b8, power: 3.2, strength: 0.16 },
+);
+const templeMossMat = new THREE.MeshStandardMaterial({
+color: 0x2c632b,
+roughness: 0.9,
+});
+
+for (const p of STEPPING_PILLARS) {
+const pillarMesh = new THREE.Mesh(
+new THREE.CylinderGeometry(p.radius, p.radius * 1.12, p.topY + 2.5, 16),
+templeStoneMat,
+);
+pillarMesh.position.set(p.x, (p.topY - 2.5) * 0.5, p.z);
+pillarMesh.castShadow = true;
+pillarMesh.receiveShadow = true;
+worldGroup.add(pillarMesh);
+}
+
+// 3. Ancient Mayan Temple & Glowing Golden Portal
+const templeGroup = new THREE.Group();
+templeGroup.position.set(TEMPLE_PORTAL_POS.x, 8.4, TEMPLE_PORTAL_POS.z);
+
+const tierWidths = [16.5, 13.0, 9.4, 5.8];
+const tierHeights = [1.9, 2.2, 2.2, 2.6];
+let accY = 0;
+for (let i = 0; i < tierWidths.length; i++) {
+const tier = new THREE.Mesh(
+new THREE.BoxGeometry(tierWidths[i], tierHeights[i], 8.8 - i * 1.1),
+templeStoneMat,
+);
+tier.position.set(0, accY + tierHeights[i] * 0.5 - 0.5, -2.6 - i * 0.35);
+tier.castShadow = true;
+tier.receiveShadow = true;
+templeGroup.add(tier);
+accY += tierHeights[i];
+}
+
+for (const sx of [-2.5, 2.5]) {
+const pillar = new THREE.Mesh(
+new THREE.BoxGeometry(1.5, 5.2, 1.85),
+templeStoneMat,
+);
+pillar.position.set(sx, 2.25, 1.3);
+pillar.castShadow = true;
+pillar.receiveShadow = true;
+templeGroup.add(pillar);
+staticColliders.push({
+x: TEMPLE_PORTAL_POS.x + sx,
+z: TEMPLE_PORTAL_POS.z + 1.3,
+radius: 0.92,
+minY: 8.0,
+maxY: 14.5,
+kind: 'structure',
+});
+}
+const lintel = new THREE.Mesh(
+new THREE.BoxGeometry(7.4, 1.38, 2.25),
+templeStoneMat,
+);
+lintel.position.set(0, 5.2, 1.3);
+lintel.castShadow = true;
+templeGroup.add(lintel);
+
+const lintelMoss = new THREE.Mesh(
+new THREE.BoxGeometry(5.8, 0.34, 2.35),
+templeMossMat,
+);
+lintelMoss.position.set(0, 5.95, 1.3);
+templeGroup.add(lintelMoss);
+
+const portalMaterial = createPortalMaterial();
+const portalPlane = new THREE.Mesh(
+new THREE.PlaneGeometry(3.7, 4.6),
+portalMaterial,
+);
+portalPlane.position.set(0, 2.2, 1.15);
+templeGroup.add(portalPlane);
+
+const portalCore = new THREE.Mesh(
+new THREE.PlaneGeometry(2.7, 3.7),
+new THREE.MeshBasicMaterial({
+color: 0xffd25e,
+transparent: true,
+opacity: 0.78,
+side: THREE.DoubleSide,
+}),
+);
+portalCore.position.set(0, 2.2, 0.95);
+templeGroup.add(portalCore);
+
+const portalLight = new THREE.PointLight(0xffb83d, 7.5, 28, 1.5);
+portalLight.position.set(0, 2.4, 2.8);
+templeGroup.add(portalLight);
+
+for (let s = 0; s < 15; s++) {
+const stepZ = -34.5 - s * 1.38;
+const stepY = getIslandGroundHeight(0, stepZ);
+const stepMesh = new THREE.Mesh(
+new THREE.BoxGeometry(8.2, 0.7, 1.45),
+templeStoneMat,
+);
+stepMesh.position.set(0, stepY - 0.12, stepZ);
+stepMesh.receiveShadow = true;
+stepMesh.castShadow = true;
+worldGroup.add(stepMesh);
+}
+
+for (const sx of [-5.2, 5.2]) {
+const guardian = createCarvedGuardianHead(templeStoneMat, templeMossMat);
+const gz = -34.0;
+const gy = getIslandGroundHeight(sx, gz);
+guardian.position.set(sx, gy - 0.15, gz);
+guardian.rotation.y = sx < 0 ? 0.25 : -0.25;
+worldGroup.add(guardian);
+staticColliders.push({
+x: sx,
+z: gz,
+radius: 0.95,
+minY: gy - 0.4,
+maxY: gy + 2.3,
+kind: 'structure',
+});
+}
+
+// Carved Golden Sun Disc Crest on the Temple Pediment + Flaming Staircase Braziers
+const templeGoldMat = new THREE.MeshPhysicalMaterial({
+color: 0xffd54f,
+emissive: 0xd98000,
+emissiveIntensity: 0.55,
+roughness: 0.22,
+metalness: 0.88,
+clearcoat: 0.65,
+});
+const sunRing = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.14, 10, 24), templeGoldMat);
+sunRing.position.set(0, 6.8, 1.55);
+templeGroup.add(sunRing);
+const sunCore = new THREE.Mesh(
+new THREE.SphereGeometry(0.48, 14, 12),
+new THREE.MeshBasicMaterial({ color: 0xfff3b0 }),
+);
+sunCore.position.set(0, 6.8, 1.55);
+templeGroup.add(sunCore);
+
+const templeFlames: THREE.Mesh[] = [];
+for (const bx of [-3.8, 3.8]) {
+const bz = -33.6;
+const by = getIslandGroundHeight(bx, bz);
+const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, 1.15, 10), templeStoneMat);
+pedestal.position.set(bx, by + 0.52, bz);
+pedestal.castShadow = true;
+worldGroup.add(pedestal);
+const flame = new THREE.Mesh(
+new THREE.ConeGeometry(0.32, 0.72, 8),
+new THREE.MeshBasicMaterial({ color: 0xffc64d }),
+);
+flame.position.set(bx, by + 1.4, bz);
+worldGroup.add(flame);
+templeFlames.push(flame);
+staticColliders.push({
+x: bx,
+z: bz,
+radius: 0.58,
+minY: by - 0.2,
+maxY: by + 1.9,
+kind: 'structure',
+});
+}
+worldGroup.add(templeGroup);
+
+// Volumetric Fresnel God-Rays illuminating key tropical landmarks
+const sunBeamMat = createGodRayMaterial(0xfff0b8, 0.2);
+for (const [rx, ry, rz, topR, botR, h, rzTilt] of [
+[WATERFALL_POS.x, 12.5, WATERFALL_POS.z + 2.5, 2.8, 7.2, 24, 0.16],
+[0, 14.5, 3.5, 3.0, 7.4, 24, 0.12],
+[TEMPLE_PORTAL_POS.x, 19.0, TEMPLE_PORTAL_POS.z + 6.0, 3.8, 9.2, 26, 0.14],
+] as Array<[number, number, number, number, number, number, number]>) {
+const beam = new THREE.Mesh(
+new THREE.CylinderGeometry(topR, botR, h, 16, 1, true),
+sunBeamMat,
+);
+beam.position.set(rx, ry, rz);
+beam.rotation.z = rzTilt;
+worldGroup.add(beam);
+}
+
+// 4. Cliff-Framed Cascading Jungle Waterfall
+const cliffRockMat = new THREE.MeshStandardMaterial({
+color: 0x5c5143,
+bumpMap: stoneTex.bumpMap,
+bumpScale: 0.1,
+roughness: 0.9,
+flatShading: true,
+});
+
+const wfGroup = new THREE.Group();
+wfGroup.position.set(WATERFALL_POS.x, 0, WATERFALL_POS.z);
+wfGroup.rotation.y = -0.35;
+
+for (const [bx, by, bz, bw, bh, bd] of [
+[-3.4, 6.2, -0.6, 2.6, 11.5, 3.2],
+[3.4, 6.2, -0.6, 2.6, 11.5, 3.2],
+[0, 11.4, -0.8, 8.6, 2.4, 3.6],
+[0, 5.5, -1.3, 6.4, 11.0, 1.8],
+] as Array<[number, number, number, number, number, number]>) {
+const cMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.65, 1), cliffRockMat);
+cMesh.position.set(bx, by, bz);
+cMesh.scale.set(bw, bh, bd);
+cMesh.castShadow = true;
+cMesh.receiveShadow = true;
+wfGroup.add(cMesh);
+}
+
+const waterfallMaterial = createWaterfallMaterial();
+const waterfallMesh = new THREE.Mesh(
+new THREE.PlaneGeometry(5.0, 11.2, 1, 12),
+waterfallMaterial,
+);
+waterfallMesh.position.set(0, 5.8, 0.35);
+waterfallMesh.rotation.x = 0.12;
+wfGroup.add(waterfallMesh);
+
+const splashPool = new THREE.Mesh(
+new THREE.CircleGeometry(4.4, 20),
+new THREE.MeshBasicMaterial({
+color: 0xcff8ff,
+transparent: true,
+opacity: 0.58,
+depthWrite: false,
+}),
+);
+splashPool.rotation.x = -Math.PI / 2;
+splashPool.position.set(0, 0.28, 1.7);
+wfGroup.add(splashPool);
+worldGroup.add(wfGroup);
+
+// 5. Giant Bouncy Mushrooms
+const stemMat = new THREE.MeshStandardMaterial({ color: 0xf7eedc, roughness: 0.75 });
+const spotMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 });
+const mushroomVisuals: MushroomVisual[] = mushroomsDef.map((m) => {
+const group = new THREE.Group();
+group.position.set(m.x, m.y, m.z);
+
+const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.52, 1.25, 12), stemMat);
+stem.position.y = 0.62;
+stem.castShadow = true;
+group.add(stem);
+
+const capGroup = new THREE.Group();
+capGroup.position.y = 1.25;
+const cap = new THREE.Mesh(
+new THREE.SphereGeometry(m.radius, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55),
+new THREE.MeshStandardMaterial({ color: m.capColor, roughness: 0.45 }),
+);
+cap.scale.set(1.0, 0.68, 1.0);
+cap.castShadow = true;
+capGroup.add(cap);
+
+for (let s = 0; s < 6; s++) {
+const a = (s / 6) * Math.PI * 2;
+const dot = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), spotMat);
+dot.position.set(Math.cos(a) * (m.radius * 0.58), 0.42, Math.sin(a) * (m.radius * 0.58));
+capGroup.add(dot);
+}
+
+group.add(capGroup);
+worldGroup.add(group);
+return { id: m.id, group, capGroup, baseY: m.y, bounceAnim: 0 };
+});
+
+// 6. Composite Tropical Palm Trees & Lush Layered Canopy Jungle Trees
+const palmBarkTex = createPalmBarkTextures(maxAniso);
+const trunkMat = new THREE.MeshStandardMaterial({
+color: 0xd9c2a8,
+map: palmBarkTex.map,
+normalMap: palmBarkTex.normalMap,
+normalScale: new THREE.Vector2(0.85, 0.85),
+roughness: 0.88,
+});
+const leafFrondTex = createLeafFrondTextures(maxAniso);
+const frondMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({
+color: 0xd8f5c8,
+map: leafFrondTex.map,
+normalMap: leafFrondTex.normalMap,
+normalScale: new THREE.Vector2(0.75, 0.75),
+roughness: 0.6,
+side: THREE.DoubleSide,
+}),
+{ colorHex: 0xffe885, power: 2.5, strength: 0.28 },
+);
+const palmCrowns: THREE.Group[] = [];
+const frondShape = new THREE.Shape();
+frondShape.moveTo(0, 0);
+frondShape.quadraticCurveTo(1.2, 0.38, 2.85, -0.45);
+frondShape.quadraticCurveTo(1.45, -0.02, 0, -0.08);
+frondShape.closePath();
+
+const frondGeo = new THREE.ExtrudeGeometry(frondShape, {
+depth: 0.34,
+bevelEnabled: true,
+bevelThickness: 0.04,
+bevelSize: 0.06,
+bevelSegments: 1,
+});
+frondGeo.translate(0, 0, -0.17);
+
+function addPalmTree(x: number, z: number, scale: number, leanYaw: number): void {
+const groundY = getIslandGroundHeight(x, z);
+if (groundY < 0.7) return;
+const tree = new THREE.Group();
+tree.position.set(x, groundY - 0.15, z);
+tree.scale.setScalar(scale);
+
+let curY = 0;
+let curOff = 0;
+const dirX = Math.cos(leanYaw);
+const dirZ = Math.sin(leanYaw);
+for (let i = 0; i < 5; i++) {
+const segH = 1.05;
+const seg = new THREE.Mesh(
+new THREE.CylinderGeometry(0.21 - i * 0.028, 0.24 - i * 0.028, segH, 8),
+trunkMat,
+);
+curOff += 0.14 * (i * 0.45);
+seg.position.set(dirX * curOff, curY + segH * 0.5, dirZ * curOff);
+seg.rotation.z = -dirX * (0.07 * i);
+seg.rotation.x = dirZ * (0.07 * i);
+seg.castShadow = true;
+curY += segH * 0.94;
+tree.add(seg);
+}
+
+const crown = new THREE.Group();
+crown.position.set(dirX * curOff, curY, dirZ * curOff);
+for (let f = 0; f < 10; f++) {
+const pivot = new THREE.Group();
+pivot.rotation.y = (f / 10) * Math.PI * 2;
+const blade = new THREE.Mesh(frondGeo, frondMat);
+blade.rotation.z = f % 2 === 0 ? 0.16 : 0.38;
+blade.castShadow = true;
+pivot.add(blade);
+crown.add(pivot);
+}
+for (let c = 0; c < 3; c++) {
+const coco = new THREE.Mesh(
+new THREE.SphereGeometry(0.16, 8, 8),
+new THREE.MeshStandardMaterial({ color: 0x523117, roughness: 0.72 }),
+);
+const ca = (c / 3) * Math.PI * 2;
+coco.position.set(Math.cos(ca) * 0.22, -0.15, Math.sin(ca) * 0.22);
+crown.add(coco);
+}
+tree.add(crown);
+palmCrowns.push(crown);
+worldGroup.add(tree);
+staticColliders.push({
+x,
+z,
+radius: 0.36 * scale,
+minY: groundY - 0.4,
+maxY: groundY + 4.8 * scale,
+kind: 'tree',
+});
+}
+
+(
+[
+[-7.5, 42.0, 1.15],
+[8.2, 39.5, 1.12],
+[-14.0, 29.0, 1.2],
+[13.5, 27.5, 1.18],
+[-8.2, 16.5, 1.05],
+[9.4, 14.0, 1.22],
+[-11.6, 5.2, 1.08],
+[13.2, 2.5, 1.15],
+[17.4, -7.5, 1.25],
+[-14.8, -11.5, 1.05],
+[-12.5, -24.5, 1.18],
+[12.8, -25.0, 1.14],
+[-15.2, -38.5, 1.25],
+[15.4, -38.0, 1.22],
+[25.0, 10.0, 1.18],
+[-22.0, 14.0, 1.1],
+] as Array<[number, number, number]>
+).forEach(([px, pz, sc], idx) => {
+addPalmTree(px, pz, sc, seededRand(idx + 1) * Math.PI * 2);
+});
+
+// Layered Nintendo Canopy Jungle Trees framing the grassy hills
+const canopyWoodMat = new THREE.MeshStandardMaterial({
+color: 0x5c3c22,
+normalMap: palmBarkTex.normalMap,
+roughness: 0.9,
+});
+const canopyLeafMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({ color: 0x2f943c, roughness: 0.68 }),
+{ colorHex: 0xd9ff85, power: 2.4, strength: 0.3 },
+);
+const canopyLightLeafMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({ color: 0x45b046, roughness: 0.65 }),
+{ colorHex: 0xfff099, power: 2.4, strength: 0.3 },
+);
+for (const [tx, tz, tsc] of [
+[-19, 25, 1.15],
+[18, 22, 1.2],
+[-21, -18, 1.25],
+[22, -18, 1.25],
+[-16, -46, 1.18],
+[16, -46, 1.18],
+[29, 2, 1.15],
+[-27, -30, 1.2],
+] as Array<[number, number, number]>) {
+const ty = getIslandGroundHeight(tx, tz);
+if (ty < 1.2) continue;
+const jTree = new THREE.Group();
+jTree.position.set(tx, ty - 0.15, tz);
+jTree.scale.setScalar(tsc);
+
+const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.52, 4.2, 9), canopyWoodMat);
+trunk.position.y = 2.0;
+trunk.castShadow = true;
+jTree.add(trunk);
+
+for (const [cx, cy, cz, cr, isLight] of [
+[0, 4.5, 0, 2.25, false],
+[-1.3, 3.9, 0.6, 1.55, true],
+[1.35, 3.85, -0.5, 1.6, false],
+[0.3, 4.1, 1.3, 1.5, true],
+[-0.4, 5.4, -0.2, 1.65, true],
+] as Array<[number, number, number, number, boolean]>) {
+const puff = new THREE.Mesh(
+new THREE.SphereGeometry(cr, 12, 10),
+isLight ? canopyLightLeafMat : canopyLeafMat,
+);
+puff.position.set(cx, cy, cz);
+puff.scale.set(1.08, 0.84, 1.08);
+puff.castShadow = true;
+puff.receiveShadow = true;
+jTree.add(puff);
+}
+worldGroup.add(jTree);
+staticColliders.push({
+x: tx,
+z: tz,
+radius: 0.55 * tsc,
+minY: ty - 0.4,
+maxY: ty + 5.6 * tsc,
+kind: 'tree',
+});
+}
+
+// 7. Instanced Basalt Rocks & Ferns
+const rocks = new THREE.InstancedMesh(
+new THREE.DodecahedronGeometry(1.0, 1),
+new THREE.MeshStandardMaterial({
+color: 0xffffff,
+bumpMap: stoneTex.bumpMap,
+bumpScale: 0.08,
+roughness: 0.92,
+flatShading: true,
+}),
+56,
+);
+rocks.castShadow = true;
+rocks.receiveShadow = true;
+const dummy = new THREE.Object3D();
+const tint = new THREE.Color();
+let rockIdx = 0;
+
+for (let i = 0; i < 110 && rockIdx < 56; i++) {
+const a = seededRand(i * 3.1 + 4) * Math.PI * 2;
+const r = 10 + seededRand(i * 5.7 + 2) * 46;
+const rx = Math.cos(a) * r + 2;
+const rz = Math.sin(a) * r - 4;
+if (rz > -28 && rz < 50 && Math.abs(rx - getTrailCenterX(rz)) < 4.5) continue;
+if (Math.abs(rx) < 8.5 && rz < -28 && rz > -68) continue;
+const ry = getIslandGroundHeight(rx, rz);
+if (ry < 0.4) continue;
+
+const sx = 0.65 + seededRand(i * 7.1) * 1.45;
+const sy = 0.45 + seededRand(i * 2.3) * 0.95;
+const sz = 0.65 + seededRand(i * 9.4) * 1.4;
+dummy.position.set(rx, ry + sy * 0.24, rz);
+dummy.rotation.set(seededRand(i) * 0.5, seededRand(i + 11) * Math.PI * 2, seededRand(i + 23) * 0.5);
+dummy.scale.set(sx, sy, sz);
+dummy.updateMatrix();
+rocks.setMatrixAt(rockIdx, dummy.matrix);
+const shade = 0.18 + seededRand(i + 41) * 0.1;
+tint.setRGB(shade, shade * 0.92, shade * 0.78);
+rocks.setColorAt(rockIdx, tint);
+staticColliders.push({
+x: rx,
+z: rz,
+radius: Math.max(sx, sz) * 0.76,
+minY: ry - 0.4,
+maxY: ry + sy * 1.15,
+kind: 'rock',
+});
+rockIdx++;
+}
+rocks.count = rockIdx;
+rocks.computeBoundingSphere();
+worldGroup.add(rocks);
+
+const leafShape = new THREE.Shape();
+leafShape.moveTo(0, 0);
+leafShape.quadraticCurveTo(0.22, 0.45, 0.02, 1.15);
+leafShape.quadraticCurveTo(-0.22, 0.45, 0, 0);
+const singleLeafBase = new THREE.ExtrudeGeometry(leafShape, { depth: 0.03, bevelEnabled: false });
+singleLeafBase.rotateX(Math.PI * 0.34);
+const leafParts: THREE.BufferGeometry[] = [];
+for (let l = 0; l < 7; l++) {
+const g = singleLeafBase.clone();
+g.rotateY((l / 7) * Math.PI * 2);
+leafParts.push(g);
+}
+const ferns = new THREE.InstancedMesh(
+mergeGeometries(leafParts) || singleLeafBase,
+new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.72, side: THREE.DoubleSide }),
+85,
+);
+ferns.castShadow = true;
+ferns.receiveShadow = true;
+let fernIdx = 0;
+for (let i = 0; i < 160 && fernIdx < 85; i++) {
+const a = seededRand(i * 4.3 + 9) * Math.PI * 2;
+const r = 6 + seededRand(i * 6.2 + 5) * 44;
+const fx = Math.cos(a) * r + 2;
+const fz = Math.sin(a) * r - 4;
+if (fz > -28 && fz < 50 && Math.abs(fx - getTrailCenterX(fz)) < 3.6) continue;
+if (Math.abs(fx) < 7.5 && fz < -28 && fz > -68) continue;
+const fy = getIslandGroundHeight(fx, fz);
+if (fy < 1.2) continue;
+
+const sc = 0.75 + seededRand(i * 1.9) * 0.9;
+dummy.position.set(fx, fy - 0.05, fz);
+dummy.rotation.set((seededRand(i + 5) - 0.5) * 0.18, seededRand(i + 3) * Math.PI, (seededRand(i + 8) - 0.5) * 0.18);
+dummy.scale.set(sc, sc * 0.95, sc);
+dummy.updateMatrix();
+ferns.setMatrixAt(fernIdx, dummy.matrix);
+tint.setHSL(0.3 + (seededRand(i + 19) - 0.5) * 0.05, 0.66, 0.17 + seededRand(i + 29) * 0.1);
+ferns.setColorAt(fernIdx, tint);
+fernIdx++;
+}
+ferns.count = fernIdx;
+ferns.computeBoundingSphere();
+worldGroup.add(ferns);
+
+// 8. Soft Rim-Lit Clouds + Instanced Wind-Swaying Grass & Wildflowers
+const cloudMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({
+color: 0xf4f8fc,
+roughness: 0.94,
+emissive: 0xffe8c4,
+emissiveIntensity: 0.08,
+}),
+{ colorHex: 0xfff5d6, power: 2.2, strength: 0.35 },
+);
+const clouds: THREE.Group[] = [];
+for (const [cx, cy, cz, cs] of [
+[-46, 30, -68, 1.45],
+[22, 35, -82, 1.7],
+[58, 28, -36, 1.35],
+[-58, 26, 18, 1.3],
+[38, 31, 42, 1.4],
+] as Array<[number, number, number, number]>) {
+const cg = new THREE.Group();
+cg.position.set(cx, cy, cz);
+cg.scale.setScalar(cs);
+for (const [px, py, pz, pr] of [
+[0, 0, 0, 3.2],
+[-2.8, -0.4, 0.4, 2.3],
+[2.9, -0.3, -0.3, 2.5],
+[1.1, 1.1, 0.2, 2.2],
+[-1.3, 0.9, -0.3, 2.0],
+] as Array<[number, number, number, number]>) {
+const puff = new THREE.Mesh(new THREE.SphereGeometry(pr, 12, 10), cloudMat);
+puff.position.set(px, py, pz);
+cg.add(puff);
+}
+clouds.push(cg);
+worldGroup.add(cg);
+}
+
+const windUniform = { value: 0 };
+createTropicalGrassAndFlowers(
+worldGroup,
+getIslandGroundHeight,
+getTrailCenterX,
+windUniform,
+);
+
+const motes = createAmbientMotesPool({
+count: 180,
+boundsX: [-60, 60],
+boundsY: [1.5, 18.0],
+boundsZ: [-62, 55],
+primaryHex: 0xfff3a8,
+secondaryHex: 0xffb7d5,
+size: 0.34,
+opacity: 0.72,
+speed: 0.75,
+});
+worldGroup.add(motes.points);
+
+// 9. Stars, Chests, Wind Rings, NPCs, Animals & Sparkles
+const starVisuals = createStarVisuals(worldGroup, starsDef);
+const chestVisuals = gemsDef.map((g) => {
+const cv = createBiblicalTreasureChest(g, woodMat);
+worldGroup.add(cv.group);
+staticColliders.push({
+x: g.x,
+z: g.z,
+radius: 0.65,
+minY: g.y - 0.9,
+maxY: g.y + 0.5,
+kind: 'structure',
+});
+return cv;
+});
+const windRingVisuals = createWindRingVisuals(worldGroup, windRingsDef);
+const npcVisuals = npcsDef.map((n) => {
+const nv = createFriendlyNpcMesh(n);
+worldGroup.add(nv.group);
+staticColliders.push({
+x: n.x,
+z: n.z,
+radius: 0.6,
+minY: n.y - 0.2,
+maxY: n.y + 1.75,
+kind: 'npc',
+});
+return nv;
+});
+const animals = buildIslandAnimals(worldGroup);
+const dynamicColliders: SolidCollider[] = animals
+.map((a) => a.collider)
+.filter((c): c is SolidCollider => Boolean(c));
+
+const sparkles = createSparklePool(280);
+worldGroup.add(sparkles.points);
+let mistTimer = 0;
+
+function update(t: number, dt: number, portalAwakened: boolean): void {
+waterfallMaterial.uniforms.uTime.value = t;
+sunBeamMat.uniforms.uTime.value = t;
+windUniform.value = t;
+motes.update(t, dt);
+
+for (let i = 0; i < templeFlames.length; i++) {
+templeFlames[i].scale.set(1, 0.85 + Math.sin(t * 15 + i * 2.1) * 0.22, 1);
+}
+
+for (let i = 0; i < palmCrowns.length; i++) {
+palmCrowns[i].rotation.z = Math.sin(t * 1.3 + i) * 0.045;
+palmCrowns[i].rotation.x = Math.cos(t * 1.1 + i * 0.7) * 0.035;
+}
+
+for (let i = 0; i < clouds.length; i++) {
+clouds[i].position.x += dt * (0.35 + (i % 3) * 0.12);
+if (clouds[i].position.x > 95) clouds[i].position.x = -95;
+}
+
+for (const mv of mushroomVisuals) {
+if (mv.bounceAnim > 0) {
+mv.bounceAnim = Math.max(0, mv.bounceAnim - dt * 3.5);
+const s = 1 + Math.sin(mv.bounceAnim * Math.PI * 3) * 0.28 * mv.bounceAnim;
+mv.capGroup.scale.set(s, 1 / s, s);
+} else {
+mv.capGroup.scale.set(1, 1, 1);
+}
+}
+
+for (const av of animals) {
+const aTime = t * av.speed + av.phase;
+if (av.kind === 'dolphin') {
+const cycle = aTime % (Math.PI * 2);
+av.group.position.x = av.originX + Math.cos(aTime * 0.5) * av.radius;
+av.group.position.z = av.originZ + Math.sin(aTime * 0.5) * av.radius;
+av.group.position.y = Math.max(-0.8, Math.sin(cycle) * 2.4 - 0.3);
+av.group.rotation.y = -aTime * 0.5;
+av.group.rotation.x = -Math.cos(cycle) * 0.55;
+} else if (av.kind === 'crab') {
+const cx = av.originX + Math.sin(aTime) * av.radius;
+av.group.position.x = cx;
+av.group.rotation.z = Math.sin(aTime * 4) * 0.12;
+if (av.collider) {
+av.collider.x = cx;
+av.collider.z = av.originZ;
+}
+} else if (av.kind === 'lamb') {
+const wx = av.originX + Math.cos(aTime * 0.6) * av.radius;
+const wz = av.originZ + Math.sin(aTime * 0.6) * av.radius;
+const wy = getIslandGroundHeight(wx, wz);
+av.group.position.set(
+wx,
+wy + Math.abs(Math.sin(aTime * 3.2)) * 0.08,
+wz,
+);
+av.group.rotation.y = -aTime * 0.6 + Math.PI;
+if (av.collider) {
+av.collider.x = wx;
+av.collider.z = wz;
+av.collider.minY = wy - 0.25;
+av.collider.maxY = wy + 1.0;
+}
+} else if (av.kind === 'bird') {
+av.group.position.x = av.originX + Math.cos(aTime) * av.radius;
+av.group.position.z = av.originZ + Math.sin(aTime) * av.radius;
+av.group.position.y = av.originY + Math.sin(aTime * 2.1) * 0.55;
+av.group.rotation.y = -aTime;
+const flap = Math.sin(t * 11 + av.phase) * 0.55;
+if (av.leftWing) av.leftWing.rotation.z = flap;
+if (av.rightWing) av.rightWing.rotation.z = -flap;
+}
+}
+
+mistTimer -= dt;
+if (mistTimer <= 0) {
+mistTimer = 0.12;
+sparkles.emit(
+WATERFALL_POS.x + 0.4,
+1.1,
+WATERFALL_POS.z + 1.5,
+2,
+3.2,
+1.4,
+);
+}
+
+animateSharedWorldEntities(
+t,
+dt,
+starVisuals,
+chestVisuals,
+windRingVisuals,
+npcVisuals,
+portalMaterial,
+portalCore,
+portalLight,
+portalAwakened,
+);
+sparkles.update(dt);
+}
+
+return {
+worldGroup,
+portalMaterial,
+portalCore,
+portalLight,
+starVisuals,
+chestVisuals,
+mushroomVisuals,
+windRingVisuals,
+npcVisuals,
+sparkles,
+staticColliders,
+dynamicColliders,
+update,
+};
+}

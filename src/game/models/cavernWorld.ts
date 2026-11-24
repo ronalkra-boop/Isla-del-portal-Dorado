@@ -9,6 +9,7 @@ getCavernTrailCenterX,
 type BouncyMushroomDef,
 type MagicStarDef,
 type NpcDef,
+type SolidCollider,
 type SunGemDef,
 type WindRingDef,
 } from '../phase1Logic';
@@ -270,7 +271,6 @@ speed: 0.85,
 
 return creatures;
 }
-
 export function buildCavernWorld(
   starsDef: MagicStarDef[],
   maxAniso: number,
@@ -280,6 +280,7 @@ export function buildCavernWorld(
   npcsDef: NpcDef[],
   ): WorldBuildResult {
   const worldGroup = new THREE.Group();
+  const staticColliders: SolidCollider[] = [];
 
   // 1. Sculpted Subterranean Basalt & Mineral Cavern Floor
   const terrainGeo = new THREE.PlaneGeometry(210, 210, 140, 140);
@@ -511,9 +512,18 @@ export function buildCavernWorld(
   Math.PI,
   ) * 0.7;
   const tb = createTorchBrazier();
-  tb.group.position.set(sx, CAVERN_BRIDGE_BOUNDS.deckY + arch, sz);
+  const ty = CAVERN_BRIDGE_BOUNDS.deckY + arch;
+  tb.group.position.set(sx, ty, sz);
   bridgeGroup.add(tb.group);
   torchFlames.push(tb.flame);
+  staticColliders.push({
+  x: sx,
+  z: sz,
+  radius: 0.42,
+  minY: ty - 0.3,
+  maxY: ty + 2.0,
+  kind: 'structure',
+  });
   }
   }
   const bridgeLight = new THREE.PointLight(0xffaa44, 5.5, 28, 1.6);
@@ -563,6 +573,14 @@ export function buildCavernWorld(
   const cluster = createCrystalCluster(col, em, sc, idx + 1);
   cluster.position.set(cx, cy - 0.15, cz);
   worldGroup.add(cluster);
+  staticColliders.push({
+  x: cx,
+  z: cz,
+  radius: 0.85 * sc,
+  minY: cy - 0.4,
+  maxY: cy + 2.6 * sc,
+  kind: 'crystal',
+  });
   });
 
   // Ambient colored cave lights so everything is vivid and readable
@@ -611,6 +629,14 @@ export function buildCavernWorld(
   col.position.set(sx, 3.2, 0.8);
   col.castShadow = true;
   sancGroup.add(col);
+  staticColliders.push({
+  x: CAVERN_PORTAL_POS.x + sx,
+  z: CAVERN_PORTAL_POS.z + 0.8,
+  radius: 0.78,
+  minY: 8.4,
+  maxY: 15.6,
+  kind: 'structure',
+  });
   }
   const architrave = new THREE.Mesh(new THREE.BoxGeometry(14.5, 1.2, 2.4), sanctuaryMat);
   architrave.position.set(0, 6.8, 0.9);
@@ -627,6 +653,14 @@ export function buildCavernWorld(
   tb.group.position.set(sx, 2.2, 2.5);
   sancGroup.add(tb.group);
   torchFlames.push(tb.flame);
+  staticColliders.push({
+  x: CAVERN_PORTAL_POS.x + sx,
+  z: CAVERN_PORTAL_POS.z + 2.5,
+  radius: 0.42,
+  minY: 8.5,
+  maxY: 13.0,
+  kind: 'structure',
+  });
   }
 
   const portalMaterial = createPortalMaterial();
@@ -722,6 +756,14 @@ export function buildCavernWorld(
   const chestVisuals = gemsDef.map((g) => {
   const cv = createBiblicalTreasureChest(g, chestWoodMat);
   worldGroup.add(cv.group);
+  staticColliders.push({
+  x: g.x,
+  z: g.z,
+  radius: 0.65,
+  minY: g.y - 0.9,
+  maxY: g.y + 0.5,
+  kind: 'structure',
+  });
   return cv;
   });
   const windRingVisuals = createWindRingVisuals(
@@ -733,6 +775,14 @@ export function buildCavernWorld(
   const npcVisuals = npcsDef.map((n) => {
   const nv = createFriendlyNpcMesh(n);
   worldGroup.add(nv.group);
+  staticColliders.push({
+  x: n.x,
+  z: n.z,
+  radius: 0.6,
+  minY: n.y - 0.2,
+  maxY: n.y + 1.75,
+  kind: 'npc',
+  });
   return nv;
   });
   const creatures = buildCavernCreatures(worldGroup);
@@ -810,6 +860,8 @@ export function buildCavernWorld(
   windRingVisuals,
   npcVisuals,
   sparkles,
+  staticColliders,
+  dynamicColliders: [],
   update,
   };
   }

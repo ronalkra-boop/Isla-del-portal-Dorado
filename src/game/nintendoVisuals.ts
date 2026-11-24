@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import type { SolidCollider } from './phase1Logic';
 import { createSparkleTexture } from './textures';
 
 export interface RimLightOptions {
@@ -365,334 +366,344 @@ if (blossomMesh.instanceColor) blossomMesh.instanceColor.needsUpdate = true;
 blossomMesh.computeBoundingSphere();
 worldGroup.add(blossomMesh);
 }
+
 /**
- * * Populates World 2 crystal caverns with glowing subterranean moss tufts
- * and clusters of bioluminescent fairy mushrooms along riverbanks and terraces.
- */
- export function createCavernFloraAndMushrooms(
- worldGroup: THREE.Group,
- groundFn: (x: number, z: number) => number,
- trailFn: (z: number) => number,
- waterLevel: number,
- windUniform: { value: number },
- ): void {
- const maxMoss = 240;
- const mossGeo = buildGrassTuftGeometry(4, 0.56, 0.13);
- const mossMat = createWindSwayMaterial(
- {
- color: 0xffffff,
- emissive: 0x1a7885,
- emissiveIntensity: 0.42,
- roughness: 0.52,
- side: THREE.DoubleSide,
- },
- windUniform,
- 0.45,
- );
- const mossMesh = new THREE.InstancedMesh(mossGeo, mossMat, maxMoss);
+* Populates World 2 crystal caverns with glowing subterranean moss tufts
+* and clusters of bioluminescent fairy mushrooms along riverbanks and terraces.
+*/
+export function createCavernFloraAndMushrooms(
+worldGroup: THREE.Group,
+groundFn: (x: number, z: number) => number,
+trailFn: (z: number) => number,
+waterLevel: number,
+windUniform: { value: number },
+): void {
+const maxMoss = 240;
+const mossGeo = buildGrassTuftGeometry(4, 0.56, 0.13);
+const mossMat = createWindSwayMaterial(
+{
+color: 0xffffff,
+emissive: 0x1a7885,
+emissiveIntensity: 0.42,
+roughness: 0.52,
+side: THREE.DoubleSide,
+},
+windUniform,
+0.45,
+);
+const mossMesh = new THREE.InstancedMesh(mossGeo, mossMat, maxMoss);
 
- const maxShrooms = 95;
- const stemGeo = new THREE.CylinderGeometry(0.055, 0.085, 0.38, 7);
- stemGeo.translate(0, 0.19, 0);
- const stemMat = new THREE.MeshStandardMaterial({
- color: 0xdff5ff,
- emissive: 0x224c66,
- emissiveIntensity: 0.35,
- roughness: 0.45,
- });
- const capGeo = new THREE.SphereGeometry(0.24, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.58);
- capGeo.scale(1, 0.72, 1);
- capGeo.translate(0, 0.36, 0);
- const capMat = new THREE.MeshStandardMaterial({
- color: 0xffffff,
- emissive: 0x3ef0ff,
- emissiveIntensity: 0.75,
- roughness: 0.25,
- });
- const stemMesh = new THREE.InstancedMesh(stemGeo, stemMat, maxShrooms);
- const capMesh = new THREE.InstancedMesh(capGeo, capMat, maxShrooms);
+const maxShrooms = 95;
+const stemGeo = new THREE.CylinderGeometry(0.055, 0.085, 0.38, 7);
+stemGeo.translate(0, 0.19, 0);
+const stemMat = new THREE.MeshStandardMaterial({
+color: 0xdff5ff,
+emissive: 0x224c66,
+emissiveIntensity: 0.35,
+roughness: 0.45,
+});
+const capGeo = new THREE.SphereGeometry(0.24, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.58);
+capGeo.scale(1, 0.72, 1);
+capGeo.translate(0, 0.36, 0);
+const capMat = new THREE.MeshStandardMaterial({
+color: 0xffffff,
+emissive: 0x3ef0ff,
+emissiveIntensity: 0.75,
+roughness: 0.25,
+});
+const stemMesh = new THREE.InstancedMesh(stemGeo, stemMat, maxShrooms);
+const capMesh = new THREE.InstancedMesh(capGeo, capMat, maxShrooms);
 
- const dummy = new THREE.Object3D();
- const tint = new THREE.Color();
- const capColors = [0x48f5ff, 0xc97eff, 0x5dffb8, 0xffd166];
+const dummy = new THREE.Object3D();
+const tint = new THREE.Color();
+const capColors = [0x48f5ff, 0xc97eff, 0x5dffb8, 0xffd166];
 
- let mIdx = 0;
- let sIdx = 0;
- for (let i = 0; i < 820 && mIdx < maxMoss; i++) {
- const a = hashSeed(i * 3.31 + 2.7) * Math.PI * 2;
- const r = 5 + Math.sqrt(hashSeed(i * 5.91 + 1.9)) * 46;
- const x = Math.cos(a) * r;
- const z = Math.sin(a) * r - 4;
- if (z > -32 && z < 48 && Math.abs(x - trailFn(z)) < 3.4) continue;
- if (Math.abs(x) < 10.5 && z < -30 && z > -68) continue;
+let mIdx = 0;
+let sIdx = 0;
+for (let i = 0; i < 820 && mIdx < maxMoss; i++) {
+const a = hashSeed(i * 3.31 + 2.7) * Math.PI * 2;
+const r = 5 + Math.sqrt(hashSeed(i * 5.91 + 1.9)) * 46;
+const x = Math.cos(a) * r;
+const z = Math.sin(a) * r - 4;
+if (z > -32 && z < 48 && Math.abs(x - trailFn(z)) < 3.4) continue;
+if (Math.abs(x) < 10.5 && z < -30 && z > -68) continue;
 
- const y = groundFn(x, z);
- if (y < waterLevel + 0.45) continue;
+const y = groundFn(x, z);
+if (y < waterLevel + 0.45) continue;
 
- const sc = 0.7 + hashSeed(i + 12) * 0.75;
- dummy.position.set(x, y - 0.03, z);
- dummy.rotation.set(0, hashSeed(i + 7) * Math.PI * 2, 0);
- dummy.scale.setScalar(sc);
- dummy.updateMatrix();
- mossMesh.setMatrixAt(mIdx, dummy.matrix);
- tint.setHSL(0.49 + hashSeed(i + 19) * 0.22, 0.72, 0.38);
- mossMesh.setColorAt(mIdx, tint);
- mIdx++;
+const sc = 0.7 + hashSeed(i + 12) * 0.75;
+dummy.position.set(x, y - 0.03, z);
+dummy.rotation.set(0, hashSeed(i + 7) * Math.PI * 2, 0);
+dummy.scale.setScalar(sc);
+dummy.updateMatrix();
+mossMesh.setMatrixAt(mIdx, dummy.matrix);
+tint.setHSL(0.49 + hashSeed(i + 19) * 0.22, 0.72, 0.38);
+mossMesh.setColorAt(mIdx, tint);
+mIdx++;
 
- if (i % 5 === 0 && sIdx < maxShrooms) {
- const ssc = 0.75 + hashSeed(i + 44) * 0.9;
- dummy.position.set(x + 0.2, y - 0.02, z + 0.2);
- dummy.rotation.set(
- (hashSeed(i + 3) - 0.5) * 0.2,
- hashSeed(i + 8) * Math.PI * 2,
- (hashSeed(i + 11) - 0.5) * 0.2,
- );
- dummy.scale.setScalar(ssc);
- dummy.updateMatrix();
- stemMesh.setMatrixAt(sIdx, dummy.matrix);
- capMesh.setMatrixAt(sIdx, dummy.matrix);
- tint.setHex(capColors[sIdx % capColors.length]);
- capMesh.setColorAt(sIdx, tint);
- sIdx++;
- }
- }
+if (i % 5 === 0 && sIdx < maxShrooms) {
+const ssc = 0.75 + hashSeed(i + 44) * 0.9;
+dummy.position.set(x + 0.2, y - 0.02, z + 0.2);
+dummy.rotation.set(
+(hashSeed(i + 3) - 0.5) * 0.2,
+hashSeed(i + 8) * Math.PI * 2,
+(hashSeed(i + 11) - 0.5) * 0.2,
+);
+dummy.scale.setScalar(ssc);
+dummy.updateMatrix();
+stemMesh.setMatrixAt(sIdx, dummy.matrix);
+capMesh.setMatrixAt(sIdx, dummy.matrix);
+tint.setHex(capColors[sIdx % capColors.length]);
+capMesh.setColorAt(sIdx, tint);
+sIdx++;
+}
+}
 
- mossMesh.count = mIdx;
- if (mossMesh.instanceColor) mossMesh.instanceColor.needsUpdate = true;
- mossMesh.computeBoundingSphere();
- worldGroup.add(mossMesh);
+mossMesh.count = mIdx;
+if (mossMesh.instanceColor) mossMesh.instanceColor.needsUpdate = true;
+mossMesh.computeBoundingSphere();
+worldGroup.add(mossMesh);
 
- stemMesh.count = sIdx;
- stemMesh.computeBoundingSphere();
- worldGroup.add(stemMesh);
+stemMesh.count = sIdx;
+stemMesh.computeBoundingSphere();
+worldGroup.add(stemMesh);
 
- capMesh.count = sIdx;
- if (capMesh.instanceColor) capMesh.instanceColor.needsUpdate = true;
- capMesh.computeBoundingSphere();
- worldGroup.add(capMesh);
- }
+capMesh.count = sIdx;
+if (capMesh.instanceColor) capMesh.instanceColor.needsUpdate = true;
+capMesh.computeBoundingSphere();
+worldGroup.add(capMesh);
+}
 
- function buildSaguaroGeometry(): THREE.BufferGeometry {
- const trunk = new THREE.CapsuleGeometry(0.28, 1.85, 6, 10);
- trunk.translate(0, 1.15, 0);
+function buildSaguaroGeometry(): THREE.BufferGeometry {
+const trunk = new THREE.CapsuleGeometry(0.28, 1.85, 6, 10);
+trunk.translate(0, 1.15, 0);
 
- const armL1 = new THREE.CapsuleGeometry(0.18, 0.55, 5, 8);
- armL1.rotateZ(Math.PI * 0.35);
- armL1.translate(-0.42, 1.25, 0);
- const armL2 = new THREE.CapsuleGeometry(0.18, 0.65, 5, 8);
- armL2.translate(-0.62, 1.65, 0);
+const armL1 = new THREE.CapsuleGeometry(0.18, 0.55, 5, 8);
+armL1.rotateZ(Math.PI * 0.35);
+armL1.translate(-0.42, 1.25, 0);
+const armL2 = new THREE.CapsuleGeometry(0.18, 0.65, 5, 8);
+armL2.translate(-0.62, 1.65, 0);
 
- const armR1 = new THREE.CapsuleGeometry(0.17, 0.48, 5, 8);
- armR1.rotateZ(-Math.PI * 0.34);
- armR1.translate(0.4, 1.48, 0);
- const armR2 = new THREE.CapsuleGeometry(0.17, 0.52, 5, 8);
- armR2.translate(0.58, 1.8, 0);
+const armR1 = new THREE.CapsuleGeometry(0.17, 0.48, 5, 8);
+armR1.rotateZ(-Math.PI * 0.34);
+armR1.translate(0.4, 1.48, 0);
+const armR2 = new THREE.CapsuleGeometry(0.17, 0.52, 5, 8);
+armR2.translate(0.58, 1.8, 0);
 
- return mergeGeometries([trunk, armL1, armL2, armR1, armR2]) || trunk;
- }
+return mergeGeometries([trunk, armL1, armL2, armR1, armR2]) || trunk;
+}
 
- /**
- * Populates World 3 with swaying emerald/golden oasis reeds around the spring
- * and sculpted multi-arm cacti across sunny desert dunes.
- */
- export function createDesertFloraAndCacti(
- worldGroup: THREE.Group,
- groundFn: (x: number, z: number) => number,
- canyonFn: (z: number) => number,
- oasisCenter: { x: number; z: number },
- pyramidCenter: { x: number; z: number },
- windUniform: { value: number },
- ): void {
- const maxReeds = 260;
- const reedGeo = buildGrassTuftGeometry(5, 0.92, 0.14);
- const reedMat = createWindSwayMaterial(
- { color: 0xffffff, roughness: 0.72, side: THREE.DoubleSide },
- windUniform,
- 1.1,
- );
- applyNintendoRimLight(reedMat, { colorHex: 0xffe48f, power: 2.6, strength: 0.3 });
- const reedMesh = new THREE.InstancedMesh(reedGeo, reedMat, maxReeds);
+/**
+* Populates World 3 with swaying emerald/golden oasis reeds around the spring
+* and sculpted multi-arm cacti across sunny desert dunes.
+*/
+export function createDesertFloraAndCacti(
+worldGroup: THREE.Group,
+groundFn: (x: number, z: number) => number,
+canyonFn: (z: number) => number,
+oasisCenter: { x: number; z: number },
+pyramidCenter: { x: number; z: number },
+windUniform: { value: number },
+): SolidCollider[] {
+const maxReeds = 260;
+const reedGeo = buildGrassTuftGeometry(5, 0.92, 0.14);
+const reedMat = createWindSwayMaterial(
+{ color: 0xffffff, roughness: 0.72, side: THREE.DoubleSide },
+windUniform,
+1.1,
+);
+applyNintendoRimLight(reedMat, { colorHex: 0xffe48f, power: 2.6, strength: 0.3 });
+const reedMesh = new THREE.InstancedMesh(reedGeo, reedMat, maxReeds);
 
- const cactusCount = 44;
- const cactusGeo = buildSaguaroGeometry();
- const cactusMat = applyNintendoRimLight(
- new THREE.MeshStandardMaterial({ color: 0x3b8c42, roughness: 0.78 }),
- { colorHex: 0xd6ff96, power: 2.5, strength: 0.32 },
- );
- const cactusMesh = new THREE.InstancedMesh(cactusGeo, cactusMat, cactusCount);
- cactusMesh.castShadow = true;
- cactusMesh.receiveShadow = true;
+const cactusCount = 44;
+const cactusGeo = buildSaguaroGeometry();
+const cactusMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({ color: 0x3b8c42, roughness: 0.78 }),
+{ colorHex: 0xd6ff96, power: 2.5, strength: 0.32 },
+);
+const cactusMesh = new THREE.InstancedMesh(cactusGeo, cactusMat, cactusCount);
+cactusMesh.castShadow = true;
+cactusMesh.receiveShadow = true;
 
- const bloomGeo = new THREE.SphereGeometry(0.14, 7, 7);
- bloomGeo.translate(0, 2.38, 0);
- const bloomMat = new THREE.MeshStandardMaterial({
- color: 0xff6f8e,
- emissive: 0xaa2e45,
- emissiveIntensity: 0.35,
- roughness: 0.5,
- });
- const bloomMesh = new THREE.InstancedMesh(bloomGeo, bloomMat, cactusCount);
+const bloomGeo = new THREE.SphereGeometry(0.14, 7, 7);
+bloomGeo.translate(0, 2.38, 0);
+const bloomMat = new THREE.MeshStandardMaterial({
+color: 0xff6f8e,
+emissive: 0xaa2e45,
+emissiveIntensity: 0.35,
+roughness: 0.5,
+});
+const bloomMesh = new THREE.InstancedMesh(bloomGeo, bloomMat, cactusCount);
 
- const dummy = new THREE.Object3D();
- const tint = new THREE.Color();
+const dummy = new THREE.Object3D();
+const tint = new THREE.Color();
 
- // Ring of lush reeds around the Oasis lagoon + sunny trailside grass clumps
- let rIdx = 0;
- for (let i = 0; i < 420 && rIdx < maxReeds; i++) {
- const aroundOasis = i < 200;
- let rx: number;
- let rz: number;
- if (aroundOasis) {
- const ang = hashSeed(i * 2.13 + 3.1) * Math.PI * 2;
- const rad = 8.4 + hashSeed(i * 4.71 + 7.4) * 6.8;
- rx = oasisCenter.x + Math.cos(ang) * rad;
- rz = oasisCenter.z + Math.sin(ang) * rad;
- } else {
- rx = (hashSeed(i * 3.7) - 0.5) * 90;
- rz = -26 + hashSeed(i * 6.1) * 76;
- if (Math.abs(rx - canyonFn(rz)) < 4.5) continue;
- }
+// Ring of lush reeds around the Oasis lagoon + sunny trailside grass clumps
+let rIdx = 0;
+for (let i = 0; i < 420 && rIdx < maxReeds; i++) {
+const aroundOasis = i < 200;
+let rx: number;
+let rz: number;
+if (aroundOasis) {
+const ang = hashSeed(i * 2.13 + 3.1) * Math.PI * 2;
+const rad = 8.4 + hashSeed(i * 4.71 + 7.4) * 6.8;
+rx = oasisCenter.x + Math.cos(ang) * rad;
+rz = oasisCenter.z + Math.sin(ang) * rad;
+} else {
+rx = (hashSeed(i * 3.7) - 0.5) * 90;
+rz = -26 + hashSeed(i * 6.1) * 76;
+if (Math.abs(rx - canyonFn(rz)) < 4.5) continue;
+}
 
- const ry = groundFn(rx, rz);
- if (ry < 0.7 || ry > 7.5) continue;
+const ry = groundFn(rx, rz);
+if (ry < 0.7 || ry > 7.5) continue;
 
- const sc = 0.8 + hashSeed(i + 15) * 0.75;
- dummy.position.set(rx, ry - 0.05, rz);
- dummy.rotation.set(0, hashSeed(i + 29) * Math.PI * 2, 0);
- dummy.scale.setScalar(sc);
- dummy.updateMatrix();
- reedMesh.setMatrixAt(rIdx, dummy.matrix);
- tint.setHSL(
- aroundOasis ? 0.25 + hashSeed(i + 41) * 0.07 : 0.14 + hashSeed(i + 41) * 0.06,
- 0.58,
- aroundOasis ? 0.34 : 0.44,
- );
- reedMesh.setColorAt(rIdx, tint);
- rIdx++;
- }
- reedMesh.count = rIdx;
- if (reedMesh.instanceColor) reedMesh.instanceColor.needsUpdate = true;
- reedMesh.computeBoundingSphere();
- worldGroup.add(reedMesh);
+const sc = 0.8 + hashSeed(i + 15) * 0.75;
+dummy.position.set(rx, ry - 0.05, rz);
+dummy.rotation.set(0, hashSeed(i + 29) * Math.PI * 2, 0);
+dummy.scale.setScalar(sc);
+dummy.updateMatrix();
+reedMesh.setMatrixAt(rIdx, dummy.matrix);
+tint.setHSL(
+aroundOasis ? 0.25 + hashSeed(i + 41) * 0.07 : 0.14 + hashSeed(i + 41) * 0.06,
+0.58,
+aroundOasis ? 0.34 : 0.44,
+);
+reedMesh.setColorAt(rIdx, tint);
+rIdx++;
+}
+reedMesh.count = rIdx;
+if (reedMesh.instanceColor) reedMesh.instanceColor.needsUpdate = true;
+reedMesh.computeBoundingSphere();
+worldGroup.add(reedMesh);
 
- let cIdx = 0;
- for (let i = 0; i < 160 && cIdx < cactusCount; i++) {
- const ang = hashSeed(i * 3.91 + 4.4) * Math.PI * 2;
- const rad = 11 + hashSeed(i * 6.43 + 1.8) * 44;
- const cx = Math.cos(ang) * rad;
- const cz = Math.sin(ang) * rad;
+let cIdx = 0;
+const cactiColliders: SolidCollider[] = [];
+for (let i = 0; i < 160 && cIdx < cactusCount; i++) {
+const ang = hashSeed(i * 3.91 + 4.4) * Math.PI * 2;
+const rad = 11 + hashSeed(i * 6.43 + 1.8) * 44;
+const cx = Math.cos(ang) * rad;
+const cz = Math.sin(ang) * rad;
 
- if (cz > -32 && cz < 52 && Math.abs(cx - canyonFn(cz)) < 5.2) continue;
- if (Math.hypot(cx - oasisCenter.x, cz - oasisCenter.z) < 13.5) continue;
- if (Math.hypot(cx - pyramidCenter.x, cz - pyramidCenter.z) < 13.0) continue;
- if (Math.abs(cx) < 11.5 && cz < -30) continue;
+if (cz > -32 && cz < 52 && Math.abs(cx - canyonFn(cz)) < 5.2) continue;
+if (Math.hypot(cx - oasisCenter.x, cz - oasisCenter.z) < 13.5) continue;
+if (Math.hypot(cx - pyramidCenter.x, cz - pyramidCenter.z) < 13.0) continue;
+if (Math.abs(cx) < 11.5 && cz < -30) continue;
 
- const cy = groundFn(cx, cz);
- if (cy < 1.2 || cy > 7.8) continue;
+const cy = groundFn(cx, cz);
+if (cy < 1.2 || cy > 7.8) continue;
 
- const sc = 0.78 + hashSeed(i + 77) * 0.68;
- dummy.position.set(cx, cy - 0.08, cz);
- dummy.rotation.set(0, hashSeed(i + 83) * Math.PI * 2, 0);
- dummy.scale.setScalar(sc);
- dummy.updateMatrix();
- cactusMesh.setMatrixAt(cIdx, dummy.matrix);
- bloomMesh.setMatrixAt(cIdx, dummy.matrix);
- cIdx++;
- }
- cactusMesh.count = cIdx;
- cactusMesh.computeBoundingSphere();
- worldGroup.add(cactusMesh);
+const sc = 0.78 + hashSeed(i + 77) * 0.68;
+dummy.position.set(cx, cy - 0.08, cz);
+dummy.rotation.set(0, hashSeed(i + 83) * Math.PI * 2, 0);
+dummy.scale.setScalar(sc);
+dummy.updateMatrix();
+cactusMesh.setMatrixAt(cIdx, dummy.matrix);
+bloomMesh.setMatrixAt(cIdx, dummy.matrix);
+cactiColliders.push({
+x: cx,
+z: cz,
+radius: 0.58 * sc,
+minY: cy - 0.4,
+maxY: cy + 2.4 * sc,
+kind: 'cactus',
+});
+cIdx++;
+}
+cactusMesh.count = cIdx;
+cactusMesh.computeBoundingSphere();
+worldGroup.add(cactusMesh);
 
- bloomMesh.count = cIdx;
- bloomMesh.computeBoundingSphere();
- worldGroup.add(bloomMesh);
- }
+bloomMesh.count = cIdx;
+bloomMesh.computeBoundingSphere();
+worldGroup.add(bloomMesh);
+return cactiColliders;
+}
 
- /**
- * Ambient world-wide drifting motes (golden pollen, glowing cave spores, or sunlit desert dust)
- * rendered with 1 additive Points draw call for Nintendo cinematic depth.
- */
- export function createAmbientMotesPool(options: {
- count: number;
- boundsX: [number, number];
- boundsY: [number, number];
- boundsZ: [number, number];
- primaryHex: number;
- secondaryHex: number;
- size?: number;
- opacity?: number;
- speed?: number;
- }): AmbientMotesPool {
- const {
- count,
- boundsX,
- boundsY,
- boundsZ,
- primaryHex,
- secondaryHex,
- size = 0.32,
- opacity = 0.75,
- speed = 0.8,
- } = options;
+/**
+* Ambient world-wide drifting motes (golden pollen, glowing cave spores, or sunlit desert dust)
+* rendered with 1 additive Points draw call for Nintendo cinematic depth.
+*/
+export function createAmbientMotesPool(options: {
+count: number;
+boundsX: [number, number];
+boundsY: [number, number];
+boundsZ: [number, number];
+primaryHex: number;
+secondaryHex: number;
+size?: number;
+opacity?: number;
+speed?: number;
+}): AmbientMotesPool {
+const {
+count,
+boundsX,
+boundsY,
+boundsZ,
+primaryHex,
+secondaryHex,
+size = 0.32,
+opacity = 0.75,
+speed = 0.8,
+} = options;
 
- const positions = new Float32Array(count * 3);
- const colors = new Float32Array(count * 3);
- const phases = new Float32Array(count);
+const positions = new Float32Array(count * 3);
+const colors = new Float32Array(count * 3);
+const phases = new Float32Array(count);
 
- const c1 = new THREE.Color(primaryHex);
- const c2 = new THREE.Color(secondaryHex);
- const tmp = new THREE.Color();
+const c1 = new THREE.Color(primaryHex);
+const c2 = new THREE.Color(secondaryHex);
+const tmp = new THREE.Color();
 
- for (let i = 0; i < count; i++) {
- const i3 = i * 3;
- positions[i3] = boundsX[0] + hashSeed(i * 2.3 + 1) * (boundsX[1] - boundsX[0]);
- positions[i3 + 1] = boundsY[0] + hashSeed(i * 4.7 + 3) * (boundsY[1] - boundsY[0]);
- positions[i3 + 2] = boundsZ[0] + hashSeed(i * 6.1 + 5) * (boundsZ[1] - boundsZ[0]);
- phases[i] = hashSeed(i * 9.3 + 7) * Math.PI * 2;
+for (let i = 0; i < count; i++) {
+const i3 = i * 3;
+positions[i3] = boundsX[0] + hashSeed(i * 2.3 + 1) * (boundsX[1] - boundsX[0]);
+positions[i3 + 1] = boundsY[0] + hashSeed(i * 4.7 + 3) * (boundsY[1] - boundsY[0]);
+positions[i3 + 2] = boundsZ[0] + hashSeed(i * 6.1 + 5) * (boundsZ[1] - boundsZ[0]);
+phases[i] = hashSeed(i * 9.3 + 7) * Math.PI * 2;
 
- tmp.copy(i % 3 === 0 ? c2 : c1);
- colors[i3] = tmp.r;
- colors[i3 + 1] = tmp.g;
- colors[i3 + 2] = tmp.b;
- }
+tmp.copy(i % 3 === 0 ? c2 : c1);
+colors[i3] = tmp.r;
+colors[i3 + 1] = tmp.g;
+colors[i3 + 2] = tmp.b;
+}
 
- const geo = new THREE.BufferGeometry();
- const posAttr = new THREE.BufferAttribute(positions, 3);
- posAttr.setUsage(THREE.DynamicDrawUsage);
- geo.setAttribute('position', posAttr);
- geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+const geo = new THREE.BufferGeometry();
+const posAttr = new THREE.BufferAttribute(positions, 3);
+posAttr.setUsage(THREE.DynamicDrawUsage);
+geo.setAttribute('position', posAttr);
+geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
- const mat = new THREE.PointsMaterial({
- size,
- map: createSparkleTexture(),
- vertexColors: true,
- transparent: true,
- opacity,
- blending: THREE.AdditiveBlending,
- depthWrite: false,
- sizeAttenuation: true,
- });
+const mat = new THREE.PointsMaterial({
+size,
+map: createSparkleTexture(),
+vertexColors: true,
+transparent: true,
+opacity,
+blending: THREE.AdditiveBlending,
+depthWrite: false,
+sizeAttenuation: true,
+});
 
- const points = new THREE.Points(geo, mat);
- points.frustumCulled = false;
+const points = new THREE.Points(geo, mat);
+points.frustumCulled = false;
 
- const update = (t: number, dt: number): void => {
- for (let i = 0; i < count; i++) {
- const i3 = i * 3;
- const p = phases[i];
- positions[i3] += Math.sin(t * 0.7 + p) * dt * 0.45 * speed;
- positions[i3 + 1] += (Math.cos(t * 0.9 + p * 1.3) * 0.35 + 0.16) * dt * speed;
- positions[i3 + 2] += Math.cos(t * 0.65 + p * 0.7) * dt * 0.4 * speed;
+const update = (t: number, dt: number): void => {
+for (let i = 0; i < count; i++) {
+const i3 = i * 3;
+const p = phases[i];
+positions[i3] += Math.sin(t * 0.7 + p) * dt * 0.45 * speed;
+positions[i3 + 1] += (Math.cos(t * 0.9 + p * 1.3) * 0.35 + 0.16) * dt * speed;
+positions[i3 + 2] += Math.cos(t * 0.65 + p * 0.7) * dt * 0.4 * speed;
 
- if (positions[i3 + 1] > boundsY[1]) positions[i3 + 1] = boundsY[0];
- if (positions[i3] > boundsX[1]) positions[i3] = boundsX[0];
- if (positions[i3] < boundsX[0]) positions[i3] = boundsX[1];
- if (positions[i3 + 2] > boundsZ[1]) positions[i3 + 2] = boundsZ[0];
- if (positions[i3 + 2] < boundsZ[0]) positions[i3 + 2] = boundsZ[1];
- }
- posAttr.needsUpdate = true;
- };
+if (positions[i3 + 1] > boundsY[1]) positions[i3 + 1] = boundsY[0];
+if (positions[i3] > boundsX[1]) positions[i3] = boundsX[0];
+if (positions[i3] < boundsX[0]) positions[i3] = boundsX[1];
+if (positions[i3 + 2] > boundsZ[1]) positions[i3 + 2] = boundsZ[0];
+if (positions[i3 + 2] < boundsZ[0]) positions[i3 + 2] = boundsZ[1];
+}
+posAttr.needsUpdate = true;
+};
 
- return { points, update };
- }
- 
+return { points, update };
+}

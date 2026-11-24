@@ -11,6 +11,7 @@ getDesertGroundHeight,
 type BouncyMushroomDef,
 type MagicStarDef,
 type NpcDef,
+type SolidCollider,
 type SunGemDef,
 type WindRingDef,
 } from '../phase1Logic';
@@ -56,6 +57,7 @@ originZ: number;
 phase: number;
 radius: number;
 speed: number;
+collider?: SolidCollider;
 }
 
 function createNomadTent(
@@ -160,6 +162,14 @@ originZ: cz,
 phase,
 radius: 3.4,
 speed: 0.45,
+collider: {
+x: cx,
+z: cz,
+radius: 0.92,
+minY: cy - 0.3,
+maxY: cy + 2.1,
+kind: 'animal',
+},
 });
 });
 
@@ -203,6 +213,14 @@ originZ: lz,
 phase: idx * 1.4,
 radius: 1.5,
 speed: 0.85,
+collider: {
+x: lx,
+z: lz,
+radius: 0.62,
+minY: ly - 0.25,
+maxY: ly + 1.0,
+kind: 'animal',
+},
 });
 });
 
@@ -280,6 +298,14 @@ originZ: fz,
 phase: idx * 2.1,
 radius: 2.2,
 speed: 1.4,
+collider: {
+x: fx,
+z: fz,
+radius: 0.42,
+minY: fy - 0.2,
+maxY: fy + 0.72,
+kind: 'animal',
+},
 });
 });
 
@@ -287,645 +313,758 @@ return creatures;
 }
 
 export function buildDesertWorld(
-  starsDef: MagicStarDef[],
-  maxAniso: number,
-  gemsDef: SunGemDef[],
-  bouncePadsDef: BouncyMushroomDef[],
-  windRingsDef: WindRingDef[],
-  npcsDef: NpcDef[],
-  ): WorldBuildResult {
-  const worldGroup = new THREE.Group();
+starsDef: MagicStarDef[],
+maxAniso: number,
+gemsDef: SunGemDef[],
+bouncePadsDef: BouncyMushroomDef[],
+windRingsDef: WindRingDef[],
+npcsDef: NpcDef[],
+): WorldBuildResult {
+const worldGroup = new THREE.Group();
+const staticColliders: SolidCollider[] = [];
 
-  // 1. Vast Rippled Golden Sand Horizon Skirt + Sculpted 240x240 Dune & Red-Mesa Terrain (ZERO Ocean!)
-  const sandTex = createSandDuneTextures(maxAniso);
-  const horizonSandMat = new THREE.MeshStandardMaterial({
-  color: 0xe6b86e,
-  map: sandTex.map,
-  normalMap: sandTex.normalMap,
-  normalScale: new THREE.Vector2(1.05, 1.05),
-  roughnessMap: sandTex.roughnessMap,
-  roughness: 0.88,
-  });
-  const horizonSand = new THREE.Mesh(
-  new THREE.PlaneGeometry(720, 720),
-  horizonSandMat,
-  );
-  horizonSand.rotation.x = -Math.PI / 2;
-  horizonSand.position.y = 1.65;
-  horizonSand.receiveShadow = true;
-  worldGroup.add(horizonSand);
+// 1. Vast Rippled Golden Sand Horizon Skirt + Sculpted 240x240 Dune & Red-Mesa Terrain (ZERO Ocean!)
+const sandTex = createSandDuneTextures(maxAniso);
+const horizonSandMat = new THREE.MeshStandardMaterial({
+color: 0xe6b86e,
+map: sandTex.map,
+normalMap: sandTex.normalMap,
+normalScale: new THREE.Vector2(1.05, 1.05),
+roughnessMap: sandTex.roughnessMap,
+roughness: 0.88,
+});
+const horizonSand = new THREE.Mesh(
+new THREE.PlaneGeometry(720, 720),
+horizonSandMat,
+);
+horizonSand.rotation.x = -Math.PI / 2;
+horizonSand.position.y = 1.65;
+horizonSand.receiveShadow = true;
+worldGroup.add(horizonSand);
 
-  const terrainGeo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, 148, 148);
-  terrainGeo.rotateX(-Math.PI / 2);
+const terrainGeo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, 148, 148);
+terrainGeo.rotateX(-Math.PI / 2);
 
-  const posAttr = terrainGeo.attributes.position as THREE.BufferAttribute;
-  const count = posAttr.count;
-  const colors = new Float32Array(count * 3);
+const posAttr = terrainGeo.attributes.position as THREE.BufferAttribute;
+const count = posAttr.count;
+const colors = new Float32Array(count * 3);
 
-  for (let i = 0; i < count; i++) {
-  const x = posAttr.getX(i);
-  const z = posAttr.getZ(i);
-  posAttr.setY(i, getDesertGroundHeight(x, z));
-  }
-  terrainGeo.computeVertexNormals();
-  const normAttr = terrainGeo.attributes.normal as THREE.BufferAttribute;
+for (let i = 0; i < count; i++) {
+const x = posAttr.getX(i);
+const z = posAttr.getZ(i);
+posAttr.setY(i, getDesertGroundHeight(x, z));
+}
+terrainGeo.computeVertexNormals();
+const normAttr = terrainGeo.attributes.normal as THREE.BufferAttribute;
 
-  const goldSandCol = new THREE.Color(0xe6b973);
-  const deepDuneCol = new THREE.Color(0xc98b49);
-  const canyonTrailCol = new THREE.Color(0xb86f3d);
-  const redMesaCol = new THREE.Color(0x9e4b2e);
-  const oasisGrassCol = new THREE.Color(0x459e40);
-  const limestoneCol = new THREE.Color(0xdfd3b4);
-  const tmpCol = new THREE.Color();
+const goldSandCol = new THREE.Color(0xe6b973);
+const deepDuneCol = new THREE.Color(0xc98b49);
+const canyonTrailCol = new THREE.Color(0xb86f3d);
+const redMesaCol = new THREE.Color(0x9e4b2e);
+const oasisGrassCol = new THREE.Color(0x459e40);
+const limestoneCol = new THREE.Color(0xdfd3b4);
+const tmpCol = new THREE.Color();
 
-  for (let i = 0; i < count; i++) {
-  const x = posAttr.getX(i);
-  const y = posAttr.getY(i);
-  const z = posAttr.getZ(i);
-  const ny = normAttr.getY(i);
+for (let i = 0; i < count; i++) {
+const x = posAttr.getX(i);
+const y = posAttr.getY(i);
+const z = posAttr.getZ(i);
+const ny = normAttr.getY(i);
 
-  const oasisDist = Math.hypot(
-  (x - DESERT_OASIS_CENTER.x) / 14.5,
-  (z - DESERT_OASIS_CENTER.z) / 13.5,
-  );
-  const oasisGrassMask = (1 - THREE.MathUtils.smoothstep(oasisDist, 0.52, 1.05)) * (y > 0.5 ? 1 : 0);
+const oasisDist = Math.hypot(
+(x - DESERT_OASIS_CENTER.x) / 14.5,
+(z - DESERT_OASIS_CENTER.z) / 13.5,
+);
+const oasisGrassMask = (1 - THREE.MathUtils.smoothstep(oasisDist, 0.52, 1.05)) * (y > 0.5 ? 1 : 0);
 
-  if (ny < 0.78 || y > 7.5) {
-  tmpCol.copy(redMesaCol).lerp(deepDuneCol, 0.28);
-  } else {
-  const waveMix = 0.5 + 0.5 * Math.sin(x * 0.08 + z * 0.05);
-  tmpCol.copy(goldSandCol).lerp(deepDuneCol, waveMix * 0.42);
-  }
+if (ny < 0.78 || y > 7.5) {
+tmpCol.copy(redMesaCol).lerp(deepDuneCol, 0.28);
+} else {
+const waveMix = 0.5 + 0.5 * Math.sin(x * 0.08 + z * 0.05);
+tmpCol.copy(goldSandCol).lerp(deepDuneCol, waveMix * 0.42);
+}
 
-  if (oasisGrassMask > 0.02) {
-  tmpCol.lerp(oasisGrassCol, oasisGrassMask * 0.92);
-  }
+if (oasisGrassMask > 0.02) {
+tmpCol.lerp(oasisGrassCol, oasisGrassMask * 0.92);
+}
 
-  if (z > -30 && z < 50) {
-  const cDist = Math.abs(x - getDesertCanyonCenterX(z));
-  const cMask = 1 - THREE.MathUtils.smoothstep(cDist, 1.8, 4.4);
-  tmpCol.lerp(canyonTrailCol, cMask * 0.78);
-  }
+if (z > -30 && z < 50) {
+const cDist = Math.abs(x - getDesertCanyonCenterX(z));
+const cMask = 1 - THREE.MathUtils.smoothstep(cDist, 1.8, 4.4);
+tmpCol.lerp(canyonTrailCol, cMask * 0.78);
+}
 
-  if (Math.abs(x) < 11.5 && z < -32 && z > -70) {
-  tmpCol.lerp(limestoneCol, 0.85);
-  }
+if (Math.abs(x) < 11.5 && z < -32 && z > -70) {
+tmpCol.lerp(limestoneCol, 0.85);
+}
 
-  colors[i * 3] = tmpCol.r;
-  colors[i * 3 + 1] = tmpCol.g;
-  colors[i * 3 + 2] = tmpCol.b;
-  }
-  terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+colors[i * 3] = tmpCol.r;
+colors[i * 3 + 1] = tmpCol.g;
+colors[i * 3 + 2] = tmpCol.b;
+}
+terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-  const terrainMesh = new THREE.Mesh(
-  terrainGeo,
-  applyNintendoRimLight(
-  new THREE.MeshStandardMaterial({
-  vertexColors: true,
-  map: sandTex.map,
-  normalMap: sandTex.normalMap,
-  normalScale: new THREE.Vector2(1.0, 1.0),
-  roughnessMap: sandTex.roughnessMap,
-  roughness: 0.88,
-  }),
-  { colorHex: 0xffe4a8, power: 3.4, strength: 0.16 },
-  ),
-  );
-  terrainMesh.receiveShadow = true;
-  worldGroup.add(terrainMesh);
+const terrainMesh = new THREE.Mesh(
+terrainGeo,
+applyNintendoRimLight(
+new THREE.MeshStandardMaterial({
+vertexColors: true,
+map: sandTex.map,
+normalMap: sandTex.normalMap,
+normalScale: new THREE.Vector2(1.0, 1.0),
+roughnessMap: sandTex.roughnessMap,
+roughness: 0.88,
+}),
+{ colorHex: 0xffe4a8, power: 3.4, strength: 0.16 },
+),
+);
+terrainMesh.receiveShadow = true;
+worldGroup.add(terrainMesh);
 
-  // 2. Stylized Shimmering Emerald Oasis Spring Water Lagoon (ONLY inside the Oasis!)
-  const oasisWaterMat = createStylizedWaterMaterial({
-  deepColorHex: 0x0b7380,
-  shallowColorHex: 0x2de0cb,
-  causticColorHex: 0xd9fff6,
-  foamColorHex: 0xf4fffd,
-  opacity: 0.92,
-  flowSpeed: 0.72,
-  emissiveBoost: 0.24,
-  });
-  const oasisWater = new THREE.Mesh(
-  new THREE.CircleGeometry(10.6, 40),
-  oasisWaterMat,
-  );
-  oasisWater.rotation.x = -Math.PI / 2;
-  oasisWater.position.set(DESERT_OASIS_CENTER.x, DESERT_WATER_LEVEL, DESERT_OASIS_CENTER.z);
-  worldGroup.add(oasisWater);
+// 2. Stylized Shimmering Emerald Oasis Spring Water Lagoon (ONLY inside the Oasis!)
+const oasisWaterMat = createStylizedWaterMaterial({
+deepColorHex: 0x0b7380,
+shallowColorHex: 0x2de0cb,
+causticColorHex: 0xd9fff6,
+foamColorHex: 0xf4fffd,
+opacity: 0.92,
+flowSpeed: 0.72,
+emissiveBoost: 0.24,
+});
+const oasisWater = new THREE.Mesh(
+new THREE.CircleGeometry(10.6, 40),
+oasisWaterMat,
+);
+oasisWater.rotation.x = -Math.PI / 2;
+oasisWater.position.set(DESERT_OASIS_CENTER.x, DESERT_WATER_LEVEL, DESERT_OASIS_CENTER.z);
+worldGroup.add(oasisWater);
 
-  // 3. West Climbable Stepped Ancient Golden Pyramid + Golden Cornices + Obelisks
-  const stoneTex = createTempleStoneTextures(maxAniso);
-  const sandstoneMat = applyNintendoRimLight(
-  new THREE.MeshStandardMaterial({
-  color: 0xe0bb7b,
-  map: stoneTex.map,
-  normalMap: stoneTex.normalMap,
-  normalScale: new THREE.Vector2(1.0, 1.0),
-  roughnessMap: stoneTex.roughnessMap,
-  roughness: 0.84,
-  }),
-  { colorHex: 0xffe9b5, power: 3.0, strength: 0.18 },
-  );
-  const redRockMat = applyNintendoRimLight(
-  new THREE.MeshStandardMaterial({
-  color: 0xb05436,
-  normalMap: stoneTex.normalMap,
-  normalScale: new THREE.Vector2(1.1, 1.1),
-  roughness: 0.88,
-  flatShading: true,
-  }),
-  { colorHex: 0xffc68f, power: 3.0, strength: 0.2 },
-  );
-  const woodTex = createWoodPlankTextures(maxAniso);
-  const chestWoodMat = new THREE.MeshStandardMaterial({
-  color: 0xdfb17d,
-  map: woodTex.map,
-  normalMap: woodTex.normalMap,
-  normalScale: new THREE.Vector2(0.85, 0.85),
-  roughnessMap: woodTex.roughnessMap,
-  roughness: 0.76,
-  });
-  const goldTrimMat = new THREE.MeshPhysicalMaterial({
-  color: 0xffcf40,
-  roughness: 0.22,
-  metalness: 0.88,
-  clearcoat: 0.62,
-  });
+// 3. West Climbable Stepped Ancient Golden Pyramid + Golden Cornices + Obelisks
+const stoneTex = createTempleStoneTextures(maxAniso);
+const sandstoneMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({
+color: 0xe0bb7b,
+map: stoneTex.map,
+normalMap: stoneTex.normalMap,
+normalScale: new THREE.Vector2(1.0, 1.0),
+roughnessMap: stoneTex.roughnessMap,
+roughness: 0.84,
+}),
+{ colorHex: 0xffe9b5, power: 3.0, strength: 0.18 },
+);
+const redRockMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({
+color: 0xb05436,
+normalMap: stoneTex.normalMap,
+normalScale: new THREE.Vector2(1.1, 1.1),
+roughness: 0.88,
+flatShading: true,
+}),
+{ colorHex: 0xffc68f, power: 3.0, strength: 0.2 },
+);
+const woodTex = createWoodPlankTextures(maxAniso);
+const chestWoodMat = new THREE.MeshStandardMaterial({
+color: 0xdfb17d,
+map: woodTex.map,
+normalMap: woodTex.normalMap,
+normalScale: new THREE.Vector2(0.85, 0.85),
+roughnessMap: woodTex.roughnessMap,
+roughness: 0.76,
+});
+const goldTrimMat = new THREE.MeshPhysicalMaterial({
+color: 0xffcf40,
+roughness: 0.22,
+metalness: 0.88,
+clearcoat: 0.62,
+});
 
-  const pyramidGroup = new THREE.Group();
-  pyramidGroup.position.set(DESERT_PYRAMID_CENTER.x, 0, DESERT_PYRAMID_CENTER.z);
-  let prevTop = 1.6;
-  for (const tier of DESERT_PYRAMID_TIERS) {
-  const h = tier.topY - prevTop;
-  const box = new THREE.Mesh(
-  new THREE.BoxGeometry(tier.halfSize * 2, h, tier.halfSize * 2),
-  sandstoneMat,
-  );
-  box.position.y = prevTop + h * 0.5;
-  box.castShadow = true;
-  box.receiveShadow = true;
-  pyramidGroup.add(box);
+const pyramidGroup = new THREE.Group();
+pyramidGroup.position.set(DESERT_PYRAMID_CENTER.x, 0, DESERT_PYRAMID_CENTER.z);
+let prevTop = 1.6;
+for (const tier of DESERT_PYRAMID_TIERS) {
+const h = tier.topY - prevTop;
+const box = new THREE.Mesh(
+new THREE.BoxGeometry(tier.halfSize * 2, h, tier.halfSize * 2),
+sandstoneMat,
+);
+box.position.y = prevTop + h * 0.5;
+box.castShadow = true;
+box.receiveShadow = true;
+pyramidGroup.add(box);
 
-  const trim = new THREE.Mesh(
-  new THREE.BoxGeometry(tier.halfSize * 2 + 0.16, 0.14, tier.halfSize * 2 + 0.16),
-  goldTrimMat,
-  );
-  trim.position.y = tier.topY - 0.08;
-  pyramidGroup.add(trim);
-  prevTop = tier.topY;
-  }
-  worldGroup.add(pyramidGroup);
+const trim = new THREE.Mesh(
+new THREE.BoxGeometry(tier.halfSize * 2 + 0.16, 0.14, tier.halfSize * 2 + 0.16),
+goldTrimMat,
+);
+trim.position.y = tier.topY - 0.08;
+pyramidGroup.add(trim);
+prevTop = tier.topY;
+}
+worldGroup.add(pyramidGroup);
 
-  // Ancient Sandstone Obelisks flanking the Pyramid & Trail
-  for (const [ox, oz] of [
-  [-19, -11],
-  [-19, -21],
-  [-7.5, -28],
-  [7.5, -28],
-  ] as Array<[number, number]>) {
-  const oy = getDesertGroundHeight(ox, oz);
-  const obelisk = new THREE.Group();
-  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.58, 5.2, 4), sandstoneMat);
-  shaft.rotation.y = Math.PI / 4;
-  shaft.position.y = 2.6;
-  shaft.castShadow = true;
-  obelisk.add(shaft);
-  const tip = new THREE.Mesh(
-  new THREE.ConeGeometry(0.45, 0.9, 4),
-  new THREE.MeshStandardMaterial({ color: 0xffcf40, roughness: 0.3, metalness: 0.7 }),
-  );
-  tip.rotation.y = Math.PI / 4;
-  tip.position.y = 5.65;
-  obelisk.add(tip);
-  obelisk.position.set(ox, oy - 0.1, oz);
-  worldGroup.add(obelisk);
-  }
+// Ancient Sandstone Obelisks flanking the Pyramid & Trail
+for (const [ox, oz] of [
+[-19, -11],
+[-19, -21],
+[-7.5, -28],
+[7.5, -28],
+] as Array<[number, number]>) {
+const oy = getDesertGroundHeight(ox, oz);
+const obelisk = new THREE.Group();
+const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.58, 5.2, 4), sandstoneMat);
+shaft.rotation.y = Math.PI / 4;
+shaft.position.y = 2.6;
+shaft.castShadow = true;
+obelisk.add(shaft);
+const tip = new THREE.Mesh(
+new THREE.ConeGeometry(0.45, 0.9, 4),
+new THREE.MeshStandardMaterial({ color: 0xffcf40, roughness: 0.3, metalness: 0.7 }),
+);
+tip.rotation.y = Math.PI / 4;
+tip.position.y = 5.65;
+obelisk.add(tip);
+obelisk.position.set(ox, oy - 0.1, oz);
+worldGroup.add(obelisk);
+staticColliders.push({
+x: ox,
+z: oz,
+radius: 0.68,
+minY: oy - 0.3,
+maxY: oy + 6.0,
+kind: 'structure',
+});
+}
 
-  // 4. Colossal Natural Red-Sandstone Canyon Arch at z = 6
-  const archGroup = new THREE.Group();
-  archGroup.position.set(getDesertCanyonCenterX(6.0), 0, 6.0);
-  const archGeo = new THREE.TorusGeometry(9.5, 2.2, 10, 24, Math.PI);
-  const archMesh = new THREE.Mesh(archGeo, redRockMat);
-  archMesh.position.y = 1.8;
-  archMesh.castShadow = true;
-  archMesh.receiveShadow = true;
-  archGroup.add(archMesh);
-  worldGroup.add(archGroup);
+// 4. Colossal Natural Red-Sandstone Canyon Arch at z = 6
+const archX = getDesertCanyonCenterX(6.0);
+const archGroup = new THREE.Group();
+archGroup.position.set(archX, 0, 6.0);
+const archGeo = new THREE.TorusGeometry(9.5, 2.2, 10, 24, Math.PI);
+const archMesh = new THREE.Mesh(archGeo, redRockMat);
+archMesh.position.y = 1.8;
+archMesh.castShadow = true;
+archMesh.receiveShadow = true;
+archGroup.add(archMesh);
+worldGroup.add(archGroup);
+for (const legOff of [-9.5, 9.5]) {
+staticColliders.push({
+x: archX + legOff,
+z: 6.0,
+radius: 2.1,
+minY: 0,
+maxY: 6.5,
+kind: 'rock',
+});
+}
 
-  // 5. South Nomad Tent Camp, Woven Camp Carpet, Supply Crates & Glowing Campfire (around z = 48)
-  const clothTex = createClothFabricTextures(maxAniso);
-  const tentSpecs: Array<[number, number, number, number, number]> = [
-  [-9.5, 47.0, 0.5, 0xc94234, 0xf2c94c],
-  [9.5, 45.5, -0.6, 0x1d7a8c, 0xf7e4ba],
-  [-12.5, 38.5, 0.9, 0xd97a26, 0xfff3d1],
-  ];
-  for (const [tx, tz, ry, c1, c2] of tentSpecs) {
-  const t = createNomadTent(c1, c2, clothTex);
-  t.position.set(tx, getDesertGroundHeight(tx, tz) - 0.1, tz);
-  t.rotation.y = ry;
-  worldGroup.add(t);
-  }
+// 5. South Nomad Tent Camp, Woven Camp Carpet, Supply Crates & Glowing Campfire (around z = 48)
+const clothTex = createClothFabricTextures(maxAniso);
+const tentSpecs: Array<[number, number, number, number, number]> = [
+[-9.5, 47.0, 0.5, 0xc94234, 0xf2c94c],
+[9.5, 45.5, -0.6, 0x1d7a8c, 0xf7e4ba],
+[-12.5, 38.5, 0.9, 0xd97a26, 0xfff3d1],
+];
+for (const [tx, tz, ry, c1, c2] of tentSpecs) {
+const t = createNomadTent(c1, c2, clothTex);
+const ty = getDesertGroundHeight(tx, tz);
+t.position.set(tx, ty - 0.1, tz);
+t.rotation.y = ry;
+worldGroup.add(t);
+staticColliders.push({
+x: tx,
+z: tz,
+radius: 2.1,
+minY: ty - 0.3,
+maxY: ty + 3.0,
+kind: 'structure',
+});
+}
 
-  for (const [cx, cz, cr] of [
-  [-6.5, 45.0, 0.4],
-  [7.2, 47.2, -0.3],
-  ] as Array<[number, number, number]>) {
-  const crate = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.85, 0.95), chestWoodMat);
-  crate.position.set(cx, getDesertGroundHeight(cx, cz) + 0.4, cz);
-  crate.rotation.y = cr;
-  crate.castShadow = true;
-  worldGroup.add(crate);
-  }
+for (const [cx, cz, cr] of [
+[-6.5, 45.0, 0.4],
+[7.2, 47.2, -0.3],
+] as Array<[number, number, number]>) {
+const cy = getDesertGroundHeight(cx, cz);
+const crate = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.85, 0.95), chestWoodMat);
+crate.position.set(cx, cy + 0.4, cz);
+crate.rotation.y = cr;
+crate.castShadow = true;
+worldGroup.add(crate);
+staticColliders.push({
+x: cx,
+z: cz,
+radius: 0.65,
+minY: cy - 0.2,
+maxY: cy + 1.0,
+kind: 'structure',
+});
+}
 
-  // Glowing Nomad Campfire near Spawn
-  const fireX = 5.2;
-  const fireZ = 45.5;
-  const fireY = getDesertGroundHeight(fireX, fireZ);
-  const campfireFlame = new THREE.Mesh(
-  new THREE.ConeGeometry(0.32, 0.72, 8),
-  new THREE.MeshBasicMaterial({ color: 0xffa62b }),
-  );
-  campfireFlame.position.set(fireX, fireY + 0.42, fireZ);
-  worldGroup.add(campfireFlame);
-  const fireLight = new THREE.PointLight(0xff9933, 4.5, 18, 1.5);
-  fireLight.position.set(fireX, fireY + 1.2, fireZ);
-  worldGroup.add(fireLight);
+// Glowing Nomad Campfire near Spawn
+const fireX = 5.2;
+const fireZ = 45.5;
+const fireY = getDesertGroundHeight(fireX, fireZ);
+const campfireFlame = new THREE.Mesh(
+new THREE.ConeGeometry(0.32, 0.72, 8),
+new THREE.MeshBasicMaterial({ color: 0xffa62b }),
+);
+campfireFlame.position.set(fireX, fireY + 0.42, fireZ);
+worldGroup.add(campfireFlame);
+staticColliders.push({
+x: fireX,
+z: fireZ,
+radius: 0.62,
+minY: fireY - 0.2,
+maxY: fireY + 1.3,
+kind: 'structure',
+});
+const fireLight = new THREE.PointLight(0xff9933, 4.5, 18, 1.5);
+fireLight.position.set(fireX, fireY + 1.2, fireZ);
+worldGroup.add(fireLight);
 
-  // 6. Oasis Date Palm Trees (with Nintendo bark/leaf normal relief & clusters of golden dates!)
-  const palmBarkTex = createPalmBarkTextures(maxAniso);
-  const palmTrunkMat = new THREE.MeshStandardMaterial({
-  color: 0xd9c2a8,
-  map: palmBarkTex.map,
-  normalMap: palmBarkTex.normalMap,
-  normalScale: new THREE.Vector2(0.85, 0.85),
-  roughness: 0.88,
-  });
-  const leafFrondTex = createLeafFrondTextures(maxAniso);
-  const palmFrondMat = applyNintendoRimLight(
-  new THREE.MeshStandardMaterial({
-  color: 0xd9f5c8,
-  map: leafFrondTex.map,
-  normalMap: leafFrondTex.normalMap,
-  normalScale: new THREE.Vector2(0.75, 0.75),
-  roughness: 0.62,
-  side: THREE.DoubleSide,
-  }),
-  { colorHex: 0xffe885, power: 2.5, strength: 0.28 },
-  );
-  const datePalmCrowns: THREE.Group[] = [];
-  const frondShape = new THREE.Shape();
-  frondShape.moveTo(0, 0);
-  frondShape.quadraticCurveTo(1.2, 0.38, 2.75, -0.45);
-  frondShape.quadraticCurveTo(1.45, -0.02, 0, -0.08);
-  frondShape.closePath();
-  const frondGeo = new THREE.ExtrudeGeometry(frondShape, {
-  depth: 0.3,
-  bevelEnabled: true,
-  bevelThickness: 0.04,
-  bevelSize: 0.05,
-  bevelSegments: 1,
-  });
-  frondGeo.translate(0, 0, -0.15);
+// 6. Oasis Date Palm Trees (with Nintendo bark/leaf normal relief & clusters of golden dates!)
+const palmBarkTex = createPalmBarkTextures(maxAniso);
+const palmTrunkMat = new THREE.MeshStandardMaterial({
+color: 0xd9c2a8,
+map: palmBarkTex.map,
+normalMap: palmBarkTex.normalMap,
+normalScale: new THREE.Vector2(0.85, 0.85),
+roughness: 0.88,
+});
+const leafFrondTex = createLeafFrondTextures(maxAniso);
+const palmFrondMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({
+color: 0xd9f5c8,
+map: leafFrondTex.map,
+normalMap: leafFrondTex.normalMap,
+normalScale: new THREE.Vector2(0.75, 0.75),
+roughness: 0.62,
+side: THREE.DoubleSide,
+}),
+{ colorHex: 0xffe885, power: 2.5, strength: 0.28 },
+);
+const datePalmCrowns: THREE.Group[] = [];
+const frondShape = new THREE.Shape();
+frondShape.moveTo(0, 0);
+frondShape.quadraticCurveTo(1.2, 0.38, 2.75, -0.45);
+frondShape.quadraticCurveTo(1.45, -0.02, 0, -0.08);
+frondShape.closePath();
+const frondGeo = new THREE.ExtrudeGeometry(frondShape, {
+depth: 0.3,
+bevelEnabled: true,
+bevelThickness: 0.04,
+bevelSize: 0.05,
+bevelSegments: 1,
+});
+frondGeo.translate(0, 0, -0.15);
 
-  function addDatePalm(x: number, z: number, scale: number, leanYaw: number): void {
-  const gy = getDesertGroundHeight(x, z);
-  const tree = new THREE.Group();
-  tree.position.set(x, gy - 0.15, z);
-  tree.scale.setScalar(scale);
+function addDatePalm(x: number, z: number, scale: number, leanYaw: number): void {
+const gy = getDesertGroundHeight(x, z);
+const tree = new THREE.Group();
+tree.position.set(x, gy - 0.15, z);
+tree.scale.setScalar(scale);
 
-  let curY = 0;
-  let curOff = 0;
-  const dx = Math.cos(leanYaw);
-  const dz = Math.sin(leanYaw);
-  for (let i = 0; i < 5; i++) {
-  const seg = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.2 - i * 0.025, 0.23 - i * 0.025, 1.05, 8),
-  palmTrunkMat,
-  );
-  curOff += 0.12 * (i * 0.45);
-  seg.position.set(dx * curOff, curY + 0.52, dz * curOff);
-  seg.rotation.z = -dx * 0.06 * i;
-  seg.rotation.x = dz * 0.06 * i;
-  seg.castShadow = true;
-  curY += 0.98;
-  tree.add(seg);
-  }
+let curY = 0;
+let curOff = 0;
+const dx = Math.cos(leanYaw);
+const dz = Math.sin(leanYaw);
+for (let i = 0; i < 5; i++) {
+const seg = new THREE.Mesh(
+new THREE.CylinderGeometry(0.2 - i * 0.025, 0.23 - i * 0.025, 1.05, 8),
+palmTrunkMat,
+);
+curOff += 0.12 * (i * 0.45);
+seg.position.set(dx * curOff, curY + 0.52, dz * curOff);
+seg.rotation.z = -dx * 0.06 * i;
+seg.rotation.x = dz * 0.06 * i;
+seg.castShadow = true;
+curY += 0.98;
+tree.add(seg);
+}
 
-  const crown = new THREE.Group();
-  crown.position.set(dx * curOff, curY, dz * curOff);
-  for (let f = 0; f < 8; f++) {
-  const p = new THREE.Group();
-  p.rotation.y = (f / 8) * Math.PI * 2;
-  const blade = new THREE.Mesh(frondGeo, palmFrondMat);
-  blade.rotation.z = 0.2 + (f % 2) * 0.14;
-  blade.castShadow = true;
-  p.add(blade);
-  crown.add(p);
-  }
-  for (let c = 0; c < 3; c++) {
-  const dates = new THREE.Mesh(
-  new THREE.SphereGeometry(0.16, 8, 8),
-  new THREE.MeshStandardMaterial({ color: 0xd98218, roughness: 0.6 }),
-  );
-  const ca = (c / 3) * Math.PI * 2;
-  dates.position.set(Math.cos(ca) * 0.22, -0.18, Math.sin(ca) * 0.22);
-  crown.add(dates);
-  }
-  tree.add(crown);
-  datePalmCrowns.push(crown);
-  worldGroup.add(tree);
-  }
+const crown = new THREE.Group();
+crown.position.set(dx * curOff, curY, dz * curOff);
+for (let f = 0; f < 8; f++) {
+const p = new THREE.Group();
+p.rotation.y = (f / 8) * Math.PI * 2;
+const blade = new THREE.Mesh(frondGeo, palmFrondMat);
+blade.rotation.z = 0.2 + (f % 2) * 0.14;
+blade.castShadow = true;
+p.add(blade);
+crown.add(p);
+}
+for (let c = 0; c < 3; c++) {
+const dates = new THREE.Mesh(
+new THREE.SphereGeometry(0.16, 8, 8),
+new THREE.MeshStandardMaterial({ color: 0xd98218, roughness: 0.6 }),
+);
+const ca = (c / 3) * Math.PI * 2;
+dates.position.set(Math.cos(ca) * 0.22, -0.18, Math.sin(ca) * 0.22);
+crown.add(dates);
+}
+tree.add(crown);
+datePalmCrowns.push(crown);
+worldGroup.add(tree);
+staticColliders.push({
+x,
+z,
+radius: 0.36 * scale,
+minY: gy - 0.4,
+maxY: gy + 4.8 * scale,
+kind: 'tree',
+});
+}
 
-  (
-  [
-  [18.5, -13.0, 1.15],
-  [21.0, -4.0, 1.2],
-  [35.5, -5.0, 1.18],
-  [36.5, -15.5, 1.12],
-  [26.5, -18.5, 1.22],
-  [28.5, -1.5, 1.08],
-  [17.5, -17.0, 1.05],
-  [33.0, -18.0, 1.15],
-  ] as Array<[number, number, number]>
-  ).forEach(([px, pz, sc], idx) => {
-  addDatePalm(px, pz, sc, seededRand(idx + 11) * Math.PI * 2);
-  });
+(
+[
+[18.5, -13.0, 1.15],
+[21.0, -4.0, 1.2],
+[35.5, -5.0, 1.18],
+[36.5, -15.5, 1.12],
+[26.5, -18.5, 1.22],
+[28.5, -1.5, 1.08],
+[17.5, -17.0, 1.05],
+[33.0, -18.0, 1.15],
+] as Array<[number, number, number]>
+).forEach(([px, pz, sc], idx) => {
+addDatePalm(px, pz, sc, seededRand(idx + 11) * Math.PI * 2);
+});
 
-  // 7. Instanced Red-Sandstone Desert Boulders
-  const boulders = new THREE.InstancedMesh(
-  new THREE.DodecahedronGeometry(1.0, 1),
-  redRockMat,
-  46,
-  );
-  boulders.castShadow = true;
-  boulders.receiveShadow = true;
-  const dummy = new THREE.Object3D();
-  let bIdx = 0;
-  for (let i = 0; i < 95 && bIdx < 46; i++) {
-  const a = seededRand(i * 3.3 + 5) * Math.PI * 2;
-  const r = 12 + seededRand(i * 5.9 + 2) * 48;
-  const rx = Math.cos(a) * r;
-  const rz = Math.sin(a) * r;
-  if (Math.abs(rx - getDesertCanyonCenterX(rz)) < 6.0 && rz > -30 && rz < 50) continue;
-  if (Math.hypot(rx - DESERT_PYRAMID_CENTER.x, rz - DESERT_PYRAMID_CENTER.z) < 13) continue;
-  if (Math.hypot(rx - DESERT_OASIS_CENTER.x, rz - DESERT_OASIS_CENTER.z) < 12) continue;
-  if (Math.abs(rx) < 10 && rz < -30) continue;
+// 7. Instanced Red-Sandstone Desert Boulders
+const boulders = new THREE.InstancedMesh(
+new THREE.DodecahedronGeometry(1.0, 1),
+redRockMat,
+46,
+);
+boulders.castShadow = true;
+boulders.receiveShadow = true;
+const dummy = new THREE.Object3D();
+let bIdx = 0;
+for (let i = 0; i < 95 && bIdx < 46; i++) {
+const a = seededRand(i * 3.3 + 5) * Math.PI * 2;
+const r = 12 + seededRand(i * 5.9 + 2) * 48;
+const rx = Math.cos(a) * r;
+const rz = Math.sin(a) * r;
+if (Math.abs(rx - getDesertCanyonCenterX(rz)) < 6.0 && rz > -30 && rz < 50) continue;
+if (Math.hypot(rx - DESERT_PYRAMID_CENTER.x, rz - DESERT_PYRAMID_CENTER.z) < 13) continue;
+if (Math.hypot(rx - DESERT_OASIS_CENTER.x, rz - DESERT_OASIS_CENTER.z) < 12) continue;
+if (Math.abs(rx) < 10 && rz < -30) continue;
 
-  const ry = getDesertGroundHeight(rx, rz);
-  const sx = 0.8 + seededRand(i * 7.1) * 1.6;
-  const sy = 0.55 + seededRand(i * 2.3) * 1.1;
-  const sz = 0.8 + seededRand(i * 9.4) * 1.6;
-  dummy.position.set(rx, ry + sy * 0.25, rz);
-  dummy.rotation.set(seededRand(i) * 0.4, seededRand(i + 11) * Math.PI * 2, seededRand(i + 23) * 0.4);
-  dummy.scale.set(sx, sy, sz);
-  dummy.updateMatrix();
-  boulders.setMatrixAt(bIdx++, dummy.matrix);
-  }
-  boulders.count = bIdx;
-  boulders.computeBoundingSphere();
-  worldGroup.add(boulders);
+const ry = getDesertGroundHeight(rx, rz);
+const sx = 0.8 + seededRand(i * 7.1) * 1.6;
+const sy = 0.55 + seededRand(i * 2.3) * 1.1;
+const sz = 0.8 + seededRand(i * 9.4) * 1.6;
+dummy.position.set(rx, ry + sy * 0.25, rz);
+dummy.rotation.set(seededRand(i) * 0.4, seededRand(i + 11) * Math.PI * 2, seededRand(i + 23) * 0.4);
+dummy.scale.set(sx, sy, sz);
+dummy.updateMatrix();
+boulders.setMatrixAt(bIdx++, dummy.matrix);
+staticColliders.push({
+x: rx,
+z: rz,
+radius: Math.max(sx, sz) * 0.76,
+minY: ry - 0.4,
+maxY: ry + sy * 1.15,
+kind: 'rock',
+});
+}
+boulders.count = bIdx;
+boulders.computeBoundingSphere();
+worldGroup.add(boulders);
 
-  // 8. North Mount of Promise White-Limestone Sanctuary & Third Golden Portal
-  const whiteStoneMat = applyNintendoRimLight(
-  new THREE.MeshStandardMaterial({
-  color: 0xf4e8ce,
-  map: stoneTex.map,
-  normalMap: stoneTex.normalMap,
-  normalScale: new THREE.Vector2(0.95, 0.95),
-  roughnessMap: stoneTex.roughnessMap,
-  roughness: 0.7,
-  }),
-  { colorHex: 0xfff0c2, power: 2.8, strength: 0.24 },
-  );
+// 8. North Mount of Promise White-Limestone Sanctuary & Third Golden Portal
+const whiteStoneMat = applyNintendoRimLight(
+new THREE.MeshStandardMaterial({
+color: 0xf4e8ce,
+map: stoneTex.map,
+normalMap: stoneTex.normalMap,
+normalScale: new THREE.Vector2(0.95, 0.95),
+roughnessMap: stoneTex.roughnessMap,
+roughness: 0.7,
+}),
+{ colorHex: 0xfff0c2, power: 2.8, strength: 0.24 },
+);
 
-  const mountGroup = new THREE.Group();
-  mountGroup.position.set(DESERT_PORTAL_POS.x, 9.6, DESERT_PORTAL_POS.z);
+const mountGroup = new THREE.Group();
+mountGroup.position.set(DESERT_PORTAL_POS.x, 9.6, DESERT_PORTAL_POS.z);
 
-  const plinth = new THREE.Mesh(new THREE.BoxGeometry(17.5, 2.8, 10.5), whiteStoneMat);
-  plinth.position.set(0, 1.0, -1.5);
-  plinth.castShadow = true;
-  plinth.receiveShadow = true;
-  mountGroup.add(plinth);
+const plinth = new THREE.Mesh(new THREE.BoxGeometry(17.5, 2.8, 10.5), whiteStoneMat);
+plinth.position.set(0, 1.0, -1.5);
+plinth.castShadow = true;
+plinth.receiveShadow = true;
+mountGroup.add(plinth);
 
-  for (const sx of [-5.8, -2.9, 2.9, 5.8]) {
-  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.68, 6.0, 14), whiteStoneMat);
-  col.position.set(sx, 5.2, 1.0);
-  col.castShadow = true;
-  mountGroup.add(col);
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.45, 1.4), goldTrimMat);
-  cap.position.set(sx, 8.2, 1.0);
-  mountGroup.add(cap);
-  }
+for (const sx of [-5.8, -2.9, 2.9, 5.8]) {
+const col = new THREE.Mesh(new THREE.CylinderGeometry(0.56, 0.68, 6.0, 14), whiteStoneMat);
+col.position.set(sx, 5.2, 1.0);
+col.castShadow = true;
+mountGroup.add(col);
+const cap = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.45, 1.4), goldTrimMat);
+cap.position.set(sx, 8.2, 1.0);
+mountGroup.add(cap);
+staticColliders.push({
+x: DESERT_PORTAL_POS.x + sx,
+z: DESERT_PORTAL_POS.z + 1.0,
+radius: 0.76,
+minY: 9.2,
+maxY: 18.2,
+kind: 'structure',
+});
+}
 
-  const crownLintel = new THREE.Mesh(new THREE.BoxGeometry(14.5, 1.25, 2.4), whiteStoneMat);
-  crownLintel.position.set(0, 8.85, 1.0);
-  crownLintel.castShadow = true;
-  mountGroup.add(crownLintel);
+const crownLintel = new THREE.Mesh(new THREE.BoxGeometry(14.5, 1.25, 2.4), whiteStoneMat);
+crownLintel.position.set(0, 8.85, 1.0);
+crownLintel.castShadow = true;
+mountGroup.add(crownLintel);
 
-  const portalMaterial = createPortalMaterial();
-  const portalPlane = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 4.7), portalMaterial);
-  portalPlane.position.set(0, 4.6, 1.15);
-  mountGroup.add(portalPlane);
+const portalMaterial = createPortalMaterial();
+const portalPlane = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 4.7), portalMaterial);
+portalPlane.position.set(0, 4.6, 1.15);
+mountGroup.add(portalPlane);
 
-  const portalCore = new THREE.Mesh(
-  new THREE.PlaneGeometry(2.8, 3.8),
-  new THREE.MeshBasicMaterial({
-  color: 0xffd25e,
-  transparent: true,
-  opacity: 0.78,
-  side: THREE.DoubleSide,
-  }),
-  );
-  portalCore.position.set(0, 4.6, 0.95);
-  mountGroup.add(portalCore);
+const portalCore = new THREE.Mesh(
+new THREE.PlaneGeometry(2.8, 3.8),
+new THREE.MeshBasicMaterial({
+color: 0xffd25e,
+transparent: true,
+opacity: 0.78,
+side: THREE.DoubleSide,
+}),
+);
+portalCore.position.set(0, 4.6, 0.95);
+mountGroup.add(portalCore);
 
-  const portalLight = new THREE.PointLight(0xffb83d, 8.2, 32, 1.4);
-  portalLight.position.set(0, 4.8, 3.0);
-  mountGroup.add(portalLight);
-  worldGroup.add(mountGroup);
+const portalLight = new THREE.PointLight(0xffb83d, 8.2, 32, 1.4);
+portalLight.position.set(0, 4.8, 3.0);
+mountGroup.add(portalLight);
+worldGroup.add(mountGroup);
 
-  // Warm Golden Sunbeams over the Red Canyon Arch, Oasis Lagoon & Mount of Promise
-  const sunBeamMat = createGodRayMaterial(0xffe19c, 0.16);
-  for (const [bx, by, bz, tr, br, bh] of [
-  [getDesertCanyonCenterX(6.0), 15.0, 6.0, 3.2, 8.2, 24],
-  [DESERT_OASIS_CENTER.x, 14.5, DESERT_OASIS_CENTER.z, 3.5, 8.8, 25],
-  [DESERT_PORTAL_POS.x, 21.0, DESERT_PORTAL_POS.z + 5.0, 3.8, 9.5, 26],
-  ] as Array<[number, number, number, number, number, number]>) {
-  const beam = new THREE.Mesh(
-  new THREE.CylinderGeometry(tr, br, bh, 18, 1, true),
-  sunBeamMat,
-  );
-  beam.position.set(bx, by, bz);
-  beam.rotation.z = 0.14;
-  worldGroup.add(beam);
-  }
+// Warm Golden Sunbeams over the Red Canyon Arch, Oasis Lagoon & Mount of Promise
+const sunBeamMat = createGodRayMaterial(0xffe19c, 0.16);
+for (const [bx, by, bz, tr, br, bh] of [
+[getDesertCanyonCenterX(6.0), 15.0, 6.0, 3.2, 8.2, 24],
+[DESERT_OASIS_CENTER.x, 14.5, DESERT_OASIS_CENTER.z, 3.5, 8.8, 25],
+[DESERT_PORTAL_POS.x, 21.0, DESERT_PORTAL_POS.z + 5.0, 3.8, 9.5, 26],
+] as Array<[number, number, number, number, number, number]>) {
+const beam = new THREE.Mesh(
+new THREE.CylinderGeometry(tr, br, bh, 18, 1, true),
+sunBeamMat,
+);
+beam.position.set(bx, by, bz);
+beam.rotation.z = 0.14;
+worldGroup.add(beam);
+}
 
-  // 9. Animated Desert Whirlwind Updraft Bounce Pads
-  const mushroomVisuals: MushroomVisual[] = bouncePadsDef.map((m) => {
-  const group = new THREE.Group();
-  group.position.set(m.x, m.y, m.z);
+// 9. Animated Desert Whirlwind Updraft Bounce Pads
+const mushroomVisuals: MushroomVisual[] = bouncePadsDef.map((m) => {
+const group = new THREE.Group();
+group.position.set(m.x, m.y, m.z);
 
-  const capGroup = new THREE.Group();
-  const funnel = new THREE.Mesh(
-  new THREE.ConeGeometry(m.radius * 0.92, 3.2, 16, 1, true),
-  new THREE.MeshBasicMaterial({
-  color: m.capColor,
-  transparent: true,
-  opacity: 0.36,
-  side: THREE.DoubleSide,
-  depthWrite: false,
-  }),
-  );
-  funnel.rotation.x = Math.PI;
-  funnel.position.y = 1.6;
-  capGroup.add(funnel);
+const capGroup = new THREE.Group();
+const funnel = new THREE.Mesh(
+new THREE.ConeGeometry(m.radius * 0.92, 3.2, 16, 1, true),
+new THREE.MeshBasicMaterial({
+color: m.capColor,
+transparent: true,
+opacity: 0.36,
+side: THREE.DoubleSide,
+depthWrite: false,
+}),
+);
+funnel.rotation.x = Math.PI;
+funnel.position.y = 1.6;
+capGroup.add(funnel);
 
-  const swirlRing = new THREE.Mesh(
-  new THREE.TorusGeometry(m.radius * 0.8, 0.1, 8, 24),
-  new THREE.MeshBasicMaterial({
-  color: 0xffe082,
-  transparent: true,
-  opacity: 0.8,
-  }),
-  );
-  swirlRing.rotation.x = Math.PI / 2;
-  swirlRing.position.y = 0.25;
-  capGroup.add(swirlRing);
+const swirlRing = new THREE.Mesh(
+new THREE.TorusGeometry(m.radius * 0.8, 0.1, 8, 24),
+new THREE.MeshBasicMaterial({
+color: 0xffe082,
+transparent: true,
+opacity: 0.8,
+}),
+);
+swirlRing.rotation.x = Math.PI / 2;
+swirlRing.position.y = 0.25;
+capGroup.add(swirlRing);
 
-  group.add(capGroup);
-  worldGroup.add(group);
-  return { id: m.id, group, capGroup, baseY: m.y, bounceAnim: 0 };
-  });
+group.add(capGroup);
+worldGroup.add(group);
+return { id: m.id, group, capGroup, baseY: m.y, bounceAnim: 0 };
+});
 
-  // 10. Instanced Oasis Reeds, Cacti, Sand Motes, Stars, Chests, Sun-Gold Flight Rings, NPCs & Creatures
-  const windUniform = { value: 0 };
-  createDesertFloraAndCacti(
-  worldGroup,
-  getDesertGroundHeight,
-  getDesertCanyonCenterX,
-  DESERT_OASIS_CENTER,
-  DESERT_PYRAMID_CENTER,
-  windUniform,
-  );
+// 10. Instanced Oasis Reeds, Cacti, Sand Motes, Stars, Chests, Sun-Gold Flight Rings, NPCs & Creatures
+const windUniform = { value: 0 };
+const cactiColliders = createDesertFloraAndCacti(
+worldGroup,
+getDesertGroundHeight,
+getDesertCanyonCenterX,
+DESERT_OASIS_CENTER,
+DESERT_PYRAMID_CENTER,
+windUniform,
+);
+staticColliders.push(...cactiColliders);
 
-  const motes = createAmbientMotesPool({
-  count: 170,
-  boundsX: [-60, 60],
-  boundsY: [1.5, 22.0],
-  boundsZ: [-64, 56],
-  primaryHex: 0xffe49e,
-  secondaryHex: 0xffb85c,
-  size: 0.34,
-  opacity: 0.7,
-  speed: 0.95,
-  });
-  worldGroup.add(motes.points);
+const motes = createAmbientMotesPool({
+count: 170,
+boundsX: [-60, 60],
+boundsY: [1.5, 22.0],
+boundsZ: [-64, 56],
+primaryHex: 0xffe49e,
+secondaryHex: 0xffb85c,
+size: 0.34,
+opacity: 0.7,
+speed: 0.95,
+});
+worldGroup.add(motes.points);
 
-  const starVisuals = createStarVisuals(worldGroup, starsDef);
-  const chestVisuals = gemsDef.map((g) => {
-  const cv = createBiblicalTreasureChest(g, chestWoodMat);
-  worldGroup.add(cv.group);
-  return cv;
-  });
-  const windRingVisuals = createWindRingVisuals(
-  worldGroup,
-  windRingsDef,
-  0xffb347,
-  0xfff3b0,
-  );
-  const npcVisuals = npcsDef.map((n) => {
-  const nv = createFriendlyNpcMesh(n);
-  worldGroup.add(nv.group);
-  return nv;
-  });
-  const creatures = buildDesertCreatures(worldGroup);
+const starVisuals = createStarVisuals(worldGroup, starsDef);
+const chestVisuals = gemsDef.map((g) => {
+const cv = createBiblicalTreasureChest(g, chestWoodMat);
+worldGroup.add(cv.group);
+staticColliders.push({
+x: g.x,
+z: g.z,
+radius: 0.65,
+minY: g.y - 0.9,
+maxY: g.y + 0.5,
+kind: 'structure',
+});
+return cv;
+});
+const windRingVisuals = createWindRingVisuals(
+worldGroup,
+windRingsDef,
+0xffb347,
+0xfff3b0,
+);
+const npcVisuals = npcsDef.map((n) => {
+const nv = createFriendlyNpcMesh(n);
+worldGroup.add(nv.group);
+staticColliders.push({
+x: n.x,
+z: n.z,
+radius: 0.6,
+minY: n.y - 0.2,
+maxY: n.y + 1.75,
+kind: 'npc',
+});
+return nv;
+});
+const creatures = buildDesertCreatures(worldGroup);
+const dynamicColliders: SolidCollider[] = creatures
+.map((c) => c.collider)
+.filter((col): col is SolidCollider => Boolean(col));
 
-  const sparkles = createSparklePool(280);
-  worldGroup.add(sparkles.points);
+const sparkles = createSparklePool(280);
+worldGroup.add(sparkles.points);
 
-  function update(t: number, dt: number, portalAwakened: boolean): void {
-  campfireFlame.scale.set(1, 0.85 + Math.sin(t * 16) * 0.2, 1);
-  oasisWaterMat.uniforms.uTime.value = t;
-  sunBeamMat.uniforms.uTime.value = t;
-  windUniform.value = t;
-  motes.update(t, dt);
+function update(t: number, dt: number, portalAwakened: boolean): void {
+campfireFlame.scale.set(1, 0.85 + Math.sin(t * 16) * 0.2, 1);
+oasisWaterMat.uniforms.uTime.value = t;
+sunBeamMat.uniforms.uTime.value = t;
+windUniform.value = t;
+motes.update(t, dt);
 
-  for (let i = 0; i < datePalmCrowns.length; i++) {
-  datePalmCrowns[i].rotation.z = Math.sin(t * 1.4 + i) * 0.05;
-  }
+for (let i = 0; i < datePalmCrowns.length; i++) {
+datePalmCrowns[i].rotation.z = Math.sin(t * 1.4 + i) * 0.05;
+}
 
-  for (const mv of mushroomVisuals) {
-  mv.capGroup.rotation.y += dt * 4.5;
-  if (mv.bounceAnim > 0) {
-  mv.bounceAnim = Math.max(0, mv.bounceAnim - dt * 3.5);
-  const s = 1 + Math.sin(mv.bounceAnim * Math.PI * 3) * 0.3 * mv.bounceAnim;
-  mv.capGroup.scale.set(s, 1.3, s);
-  } else {
-  mv.capGroup.scale.set(1, 1, 1);
-  }
-  }
+for (const mv of mushroomVisuals) {
+mv.capGroup.rotation.y += dt * 4.5;
+if (mv.bounceAnim > 0) {
+mv.bounceAnim = Math.max(0, mv.bounceAnim - dt * 3.5);
+const s = 1 + Math.sin(mv.bounceAnim * Math.PI * 3) * 0.3 * mv.bounceAnim;
+mv.capGroup.scale.set(s, 1.3, s);
+} else {
+mv.capGroup.scale.set(1, 1, 1);
+}
+}
 
-  for (const c of creatures) {
-  const aTime = t * c.speed + c.phase;
-  if (c.kind === 'camel') {
-  const cx = c.originX + Math.cos(aTime) * c.radius;
-  const cz = c.originZ + Math.sin(aTime) * c.radius;
-  c.group.position.set(cx, getDesertGroundHeight(cx, cz), cz);
-  c.group.rotation.y = -aTime;
-  } else if (c.kind === 'lamb') {
-  const lx = c.originX + Math.cos(aTime * 0.6) * c.radius;
-  const lz = c.originZ + Math.sin(aTime * 0.6) * c.radius;
-  c.group.position.set(
-  lx,
-  getDesertGroundHeight(lx, lz) + Math.abs(Math.sin(aTime * 3.0)) * 0.08,
-  lz,
-  );
-  c.group.rotation.y = -aTime * 0.6 + Math.PI;
-  } else if (c.kind === 'eagle') {
-  c.group.position.x = c.originX + Math.cos(aTime) * c.radius;
-  c.group.position.z = c.originZ + Math.sin(aTime) * c.radius;
-  c.group.position.y = c.originY + Math.sin(aTime * 1.8) * 0.8;
-  c.group.rotation.y = -aTime;
-  const flap = Math.sin(t * 7 + c.phase) * 0.35;
-  if (c.leftWing) c.leftWing.rotation.z = flap;
-  if (c.rightWing) c.rightWing.rotation.z = -flap;
-  } else if (c.kind === 'fox') {
-  const fx = c.originX + Math.sin(aTime) * c.radius;
-  const fz = c.originZ + Math.cos(aTime * 0.8) * c.radius;
-  c.group.position.set(
-  fx,
-  getDesertGroundHeight(fx, fz) + Math.abs(Math.sin(aTime * 4.5)) * 0.14,
-  fz,
-  );
-  c.group.rotation.y = aTime;
-  }
-  }
+for (const c of creatures) {
+const aTime = t * c.speed + c.phase;
+if (c.kind === 'camel') {
+const cx = c.originX + Math.cos(aTime) * c.radius;
+const cz = c.originZ + Math.sin(aTime) * c.radius;
+const cy = getDesertGroundHeight(cx, cz);
+c.group.position.set(cx, cy, cz);
+c.group.rotation.y = -aTime;
+if (c.collider) {
+c.collider.x = cx;
+c.collider.z = cz;
+c.collider.minY = cy - 0.3;
+c.collider.maxY = cy + 2.1;
+}
+} else if (c.kind === 'lamb') {
+const lx = c.originX + Math.cos(aTime * 0.6) * c.radius;
+const lz = c.originZ + Math.sin(aTime * 0.6) * c.radius;
+const ly = getDesertGroundHeight(lx, lz);
+c.group.position.set(
+lx,
+ly + Math.abs(Math.sin(aTime * 3.0)) * 0.08,
+lz,
+);
+c.group.rotation.y = -aTime * 0.6 + Math.PI;
+if (c.collider) {
+c.collider.x = lx;
+c.collider.z = lz;
+c.collider.minY = ly - 0.25;
+c.collider.maxY = ly + 1.0;
+}
+} else if (c.kind === 'eagle') {
+c.group.position.x = c.originX + Math.cos(aTime) * c.radius;
+c.group.position.z = c.originZ + Math.sin(aTime) * c.radius;
+c.group.position.y = c.originY + Math.sin(aTime * 1.8) * 0.8;
+c.group.rotation.y = -aTime;
+const flap = Math.sin(t * 7 + c.phase) * 0.35;
+if (c.leftWing) c.leftWing.rotation.z = flap;
+if (c.rightWing) c.rightWing.rotation.z = -flap;
+} else if (c.kind === 'fox') {
+const fx = c.originX + Math.sin(aTime) * c.radius;
+const fz = c.originZ + Math.cos(aTime * 0.8) * c.radius;
+const fy = getDesertGroundHeight(fx, fz);
+c.group.position.set(
+fx,
+fy + Math.abs(Math.sin(aTime * 4.5)) * 0.14,
+fz,
+);
+c.group.rotation.y = aTime;
+if (c.collider) {
+c.collider.x = fx;
+c.collider.z = fz;
+c.collider.minY = fy - 0.2;
+c.collider.maxY = fy + 0.72;
+}
+}
+}
 
-  animateSharedWorldEntities(
-  t,
-  dt,
-  starVisuals,
-  chestVisuals,
-  windRingVisuals,
-  npcVisuals,
-  portalMaterial,
-  portalCore,
-  portalLight,
-  portalAwakened,
-  );
-  sparkles.update(dt);
-  }
+animateSharedWorldEntities(
+t,
+dt,
+starVisuals,
+chestVisuals,
+windRingVisuals,
+npcVisuals,
+portalMaterial,
+portalCore,
+portalLight,
+portalAwakened,
+);
+sparkles.update(dt);
+}
 
-  return {
-  worldGroup,
-  portalMaterial,
-  portalCore,
-  portalLight,
-  starVisuals,
-  chestVisuals,
-  mushroomVisuals,
-  windRingVisuals,
-  npcVisuals,
-  sparkles,
-  update,
-  };
-  }
+return {
+worldGroup,
+portalMaterial,
+portalCore,
+portalLight,
+starVisuals,
+chestVisuals,
+mushroomVisuals,
+windRingVisuals,
+npcVisuals,
+sparkles,
+staticColliders,
+dynamicColliders,
+update,
+};
+}

@@ -1,6 +1,6 @@
 export type VoiceSpeakerId =
 | 'Waka'
-| 'Oli'
+| 'Holy'
 | 'CapitanCoral'
 | 'Mateo'
 | 'Ixchel'
@@ -28,7 +28,7 @@ style:
 pitch: 1.12,
 rate: 1.03,
 },
-Oli: {
+Holy: {
 voiceName: 'Zephyr',
 style:
 'Warm, expressive, curious and joyful young girl adventurer speaking clearly in Latin American Spanish for children, heartfelt storybook wonder.',
@@ -104,9 +104,12 @@ rate: 0.96,
 };
 
 export function getSpeakerVoiceProfile(speaker: string): VoiceProfile {
+if (speaker === 'Oli') {
+return SPEAKER_VOICE_PROFILES.Holy;
+}
 return (
 SPEAKER_VOICE_PROFILES[speaker as VoiceSpeakerId] ??
-SPEAKER_VOICE_PROFILES.Oli
+SPEAKER_VOICE_PROFILES.Holy
 );
 }
 
@@ -118,7 +121,7 @@ return raw
 .replace(/<[^>]+>/g, ' ')
 .replace(/\|[^|]+\|/g, ' ')
 .replace(
-/^(Waka|Oli|CapitanCoral|Mateo|Ixchel|MineroNoe|Ester|Samuel|David|Miriam|Caleb)\s*:\s*/i,
+/^(Waka|Holy|Oli|CapitanCoral|Mateo|Ixchel|MineroNoe|Ester|Samuel|David|Miriam|Caleb)\s*:\s*/i,
 '',
 )
 .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
@@ -184,11 +187,11 @@ lines: [
 line(
 'Waka',
 'Waka la Guacamaya',
-'¡Sacude esas plumas, Oli! ¡Mira qué isla tropical tan maravillosa creó Dios! Hay delfines saltando, un barco pirata, una cascada gigante y tres Cofres de Tesoros Bíblicos escondidos.',
+'¡Sacude esas plumas, Holy! ¡Mira qué isla tropical tan maravillosa creó Dios! Hay delfines saltando, un barco pirata, una cascada gigante y tres Cofres de Tesoros Bíblicos escondidos.',
 ),
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 '¡Qué emoción, Waka! Recojamos cuatro estrellas de luz para despertar el vuelo, hablemos con nuestros amigos y abramos los tres Cofres Bíblicos para cruzar el Portal Dorado hacia la caverna subterránea.',
 ),
 ],
@@ -200,14 +203,9 @@ title: '¡Primera Estrella de Luz!',
 bibleVerse: 'Mateo 5:14 · "Vosotros sois la luz del mundo."',
 lines: [
 line(
-'Oli',
-'Oli la Aventurera',
-'¡Atrapé una estrella de luz! ¡Siento cosquillitas doradas en mis botas de exploradora!',
-),
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Fantástico, Oli! Reúne cuatro estrellitas y podrás volar conmigo por encima de las palmeras sin despeinarte las trenzas.',
+'Holy',
+'Holy la Aventurera',
+'¡Atrapé una estrella de luz, Waka! Si reúno cuatro estrellitas podremos volar por encima de las palmeras.',
 ),
 ],
 },
@@ -218,8 +216,8 @@ title: '¡Poder de Vuelo Desbloqueado!',
 bibleVerse: 'Isaías 40:31 · "Levantarán alas como las águilas."',
 lines: [
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 '¡Waka, mis pies flotan en el aire! ¡Estoy volando de verdad!',
 ),
 line(
@@ -237,7 +235,7 @@ lines: [
 line(
 'Waka',
 'Waka la Guacamaya',
-'¡Qué rebote tan divertido, Oli! Estos hongos gigantes son como camas elásticas naturales para subir hasta la cima de la cascada.',
+'¡Qué rebote tan divertido, Holy! Estos hongos gigantes son como camas elásticas naturales para subir hasta la cima de la cascada.',
 ),
 ],
 },
@@ -264,12 +262,12 @@ lines: [
 line(
 'CapitanCoral',
 'Capitán Coral',
-'¡Bienvenidas a la bahía, valientes Oli y Waka! Sobre los pilares de piedra junto a mi barco brilla el Cofre del Candelero de Oro. En la Biblia, sus siete lámparas iluminaban el Tabernáculo de Dios.',
+'¡Bienvenidas a la bahía, valientes Holy y Waka! Sobre los pilares de piedra junto a mi barco brilla el Cofre del Candelero de Oro. En la Biblia, sus siete lámparas iluminaban el Tabernáculo de Dios.',
 ),
 line(
 'Waka',
 'Waka la Guacamaya',
-'¡A mí me encanta todo lo que brilla! Salta de pilar en pilar sobre el agua turquesa para abrir ese cofre, Oli.',
+'¡A mí me encanta todo lo que brilla! Salta de pilar en pilar sobre el agua turquesa para abrir ese cofre, Holy.',
 ),
 ],
 quiz: {
@@ -300,12 +298,12 @@ lines: [
 line(
 'Mateo',
 'Explorador Mateo',
-'¡Hola, Oli! En la terraza más alta de la cascada hay un cofre precioso que guarda la Santa Biblia. Rebota sobre los hongos saltarines de colores para subir hasta la cima.',
+'¡Hola, Holy! En la terraza más alta de la cascada hay un cofre precioso que guarda la Santa Biblia. Rebota sobre los hongos saltarines de colores para subir hasta la cima.',
 ),
 line(
 'Waka',
 'Waka la Guacamaya',
-'¡A saltar como resortes, Oli! Allá arriba nos espera el tesoro de la Palabra de Dios.',
+'¡A saltar como resortes, Holy! Allá arriba nos espera el tesoro de la Palabra de Dios.',
 ),
 ],
 quiz: {
@@ -337,11 +335,11 @@ lines: [
 line(
 'Ixchel',
 'Sabia Ixchel',
-'Bienvenida al templo antiguo, pequeña Oli. El tercer cofre flota entre los aros del cielo y guarda el Arca y las Tablas del Amor. Cuando abras los tres cofres, el Portal Dorado te llevará a una misteriosa caverna subterránea.',
+'Bienvenida al templo antiguo, pequeña Holy. El tercer cofre flota entre los aros del cielo y guarda el Arca y las Tablas del Amor. Cuando abras los tres cofres, el Portal Dorado te llevará a una misteriosa caverna subterránea.',
 ),
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 '¡Gracias, Sabia Ixchel! Volaremos por el cielo con Waka para abrir el tercer cofre y descubrir el mundo subterráneo.',
 ),
 ],
@@ -363,7 +361,6 @@ rewardMessage:
 '¡Maravilloso! Amar a Dios y amar a nuestro prójimo resume toda la enseñanza de Jesús.',
 },
 },
-
 // --- Cofres de Tesoros Bíblicos (Mundo 1) ---
 gem_marina: {
 id: 'gem_marina',
@@ -375,11 +372,11 @@ lines: [
 line(
 'Waka',
 'Waka la Guacamaya',
-'¡Abrimos el cofre de la bahía! ¡Mira qué resplandor tan precioso, Oli! ¡Es el Candelero de Oro de la Biblia!',
+'¡Abrimos el cofre de la bahía! ¡Mira qué resplandor tan precioso, Holy! ¡Es el Candelero de Oro de la Biblia!',
 ),
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 'En la Biblia, el Candelero de Oro tenía siete lámparas con aceite de olivo que nunca se apagaban dentro del Tabernáculo de Dios. Nos enseña que Jesús es la Luz del Mundo que ilumina nuestra vida y nos acompaña siempre.',
 ),
 ],
@@ -393,8 +390,8 @@ bibleVerse:
 'Salmos 119:105 · "Lámpara es a mis pies tu palabra, y lumbrera a mi camino."',
 lines: [
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 '¡Lo logramos, Waka! ¡Dentro de este cofre en lo alto de la cascada encontramos la Santa Biblia y los antiguos pergaminos de las Escrituras!',
 ),
 line(
@@ -418,8 +415,8 @@ line(
 '¡Volamos hasta lo más alto del cielo y abrimos el cofre! ¡Son el Arca Dorada y las Tablas de la Alianza!',
 ),
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 'En la Biblia, el Arca guardaba los Diez Mandamientos y recordaba al pueblo que Dios caminaba con ellos. Jesús nos enseñó que toda la ley de Dios se cumple cuando amamos a Dios y ayudamos con alegría a los demás.',
 ),
 ],
@@ -438,11 +435,11 @@ lines: [
 line(
 'Waka',
 'Waka la Guacamaya',
-'¡Guau, Oli, qué cambio tan impresionante! ¡Cruzamos el Portal Dorado y bajamos a una gigantesca caverna subterránea llena de cristales brillantes, antorchas, murciélagos simpáticos y un río luminoso!',
+'¡Guau, Holy, qué cambio tan impresionante! ¡Cruzamos el Portal Dorado y bajamos a una gigantesca caverna subterránea llena de cristales brillantes, antorchas, murciélagos simpáticos y un río luminoso!',
 ),
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 '¡Qué lugar tan increíble! Aunque estemos bajo tierra, la luz de las antorchas y los cristales lo ilumina todo. Busquemos los tres Cofres Bíblicos de la caverna para abrir el portal hacia el desierto dorado.',
 ),
 ],
@@ -475,7 +472,7 @@ line(
 line(
 'Waka',
 'Waka la Guacamaya',
-'¡No tengas miedo a la oscuridad, Oli! Con la luz de Jesús y buenos saltos llegaremos directo a ese cofre.',
+'¡No tengas miedo a la oscuridad, Holy! Con la luz de Jesús y buenos saltos llegaremos directo a ese cofre.',
 ),
 ],
 quiz: {
@@ -507,11 +504,11 @@ lines: [
 line(
 'Ester',
 'Arqueóloga Ester',
-'¡Bienvenidos a la galería de cristales, Oli y Waka! ¿Sabían que en la vida real se encontraron antiguos rollos de la Biblia guardados dentro de cuevas en vasijas de barro? Usa los géiseres de cristal para subir a descubrir nuestro cofre de pergaminos.',
+'¡Bienvenidos a la galería de cristales, Holy y Waka! ¿Sabían que en la vida real se encontraron antiguos rollos de la Biblia guardados dentro de cuevas en vasijas de barro? Usa los géiseres de cristal para subir a descubrir nuestro cofre de pergaminos.',
 ),
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 '¡Qué dato tan genial, Ester! Subiremos por los géiseres luminosos hasta la terraza de la cascada subterránea.',
 ),
 ],
@@ -544,12 +541,12 @@ lines: [
 line(
 'Samuel',
 'Anciano Samuel',
-'La paz sea con ustedes, Oli y Waka. Ante ustedes se alza el Santuario de la Roca. En lo alto de la bóveda subterránea, atravesando los aros de linternas doradas, hallarán el Cofre de la Roca Firme.',
+'La paz sea con ustedes, Holy y Waka. Ante ustedes se alza el Santuario de la Roca. En lo alto de la bóveda subterránea, atravesando los aros de linternas doradas, hallarán el Cofre de la Roca Firme.',
 ),
 line(
 'Waka',
 'Waka la Guacamaya',
-'¡A despegar bajo las estalactitas, Oli! Atrapa el cofre de la Roca Firme y el Portal Dorado nos llevará al desierto soleado.',
+'¡A despegar bajo las estalactitas, Holy! Atrapa el cofre de la Roca Firme y el Portal Dorado nos llevará al desierto soleado.',
 ),
 ],
 quiz: {
@@ -585,8 +582,8 @@ line(
 '¡Saltamos sobre las columnas de amatista y abrimos el primer cofre subterráneo! ¡Es una hermosa Lámpara de Aceite bíblica!',
 ),
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 'En tiempos de la Biblia, estas pequeñas lámparas de aceite alumbraban las casas y los caminos de noche. Jesús usó la lámpara para enseñarnos que su luz brilla incluso en las cuevas más oscuras y que nunca debemos apagar nuestra fe.',
 ),
 ],
@@ -600,8 +597,8 @@ bibleVerse:
 'Isaías 40:8 · "La palabra del Dios nuestro permanece para siempre."',
 lines: [
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 '¡Mira, Waka! ¡Dentro de este cofre en la galería alta hay una vasija de barro con los Rollos Antiguos de las Escrituras!',
 ),
 line(
@@ -625,8 +622,8 @@ line(
 '¡Volamos por debajo de los cristales del techo y abrimos el cofre de la bóveda! ¡Es la Piedra Angular dorada!',
 ),
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 'En la Biblia, la piedra angular era la roca más fuerte y perfecta sobre la que se apoyaba todo el edificio. Nos enseña que Jesús es la Roca Firme: cuando confiamos en Él, ninguna tormenta puede derribarnos.',
 ),
 ],
@@ -648,8 +645,8 @@ line(
 '¡Salimos de la caverna hacia el sol brillante! ¡Mira esas dunas doradas, el gran arco de piedra roja, los camellos, las tiendas del campamento y un oasis verde con palmeras de dátiles!',
 ),
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 '¡Es el Desierto del Éxodo y el Oasis de Promesa! Vamos a explorar la pirámide antigua, el oasis de las ovejitas y los remolinos de viento para descubrir los últimos tres Cofres Bíblicos.',
 ),
 ],
@@ -677,12 +674,12 @@ lines: [
 line(
 'Miriam',
 'Guía Miriam',
-'¡Shalom, Oli y Waka! Bienvenidos al campamento del desierto. Si escalas los escalones de la antigua pirámide de arena al oeste, encontrarás el Cofre de la Vasija Dorada del Maná que Dios envió del cielo.',
+'¡Shalom, Holy y Waka! Bienvenidos al campamento del desierto. Si escalas los escalones de la antigua pirámide de arena al oeste, encontrarás el Cofre de la Vasija Dorada del Maná que Dios envió del cielo.',
 ),
 line(
 'Waka',
 'Waka la Guacamaya',
-'¡Pan del cielo con sabor a miel! ¡Vamos corriendo hacia las ruinas y la pirámide de las dunas, Oli!',
+'¡Pan del cielo con sabor a miel! ¡Vamos corriendo hacia las ruinas y la pirámide de las dunas, Holy!',
 ),
 ],
 quiz: {
@@ -717,8 +714,8 @@ line(
 '¡Hola, amigos! Aquí junto al oasis cuido a mis ovejitas y toco melodías de gratitud a Dios. Si subes por los remolinos dorados detrás de las palmeras hasta la meseta roja, hallarás el Cofre del Cayado del Buen Pastor y el Arpa de Alabanza.',
 ),
 line(
-'Oli',
-'Oli la Aventurera',
+'Holy',
+'Holy la Aventurera',
 '¡Qué ovejitas tan tiernas, David! Subiremos por los remolinos del oasis hasta la meseta alta.',
 ),
 ],
@@ -740,291 +737,290 @@ rewardMessage:
 '¡Acertaste! Jesús es nuestro Buen Pastor que nos conoce por nuestro nombre y siempre nos protege.',
 },
 },
-
 npc_caleb: {
-id: 'npc_caleb',
-title: 'Reto Bíblico del Anciano Caleb',
-subtitle: 'La Subida al Monte de la Promesa',
-bibleVerse:
-'Juan 4:14 y Santiago 1:12 · "Recibirá la corona de vida, que Dios ha prometido a los que le aman."',
-lines: [
-line(
-'Caleb',
-'Anciano Caleb',
-'¡Fuerza y valentía, pequeños aventureros! Al atravesar el gran arco de piedra y volar por los aros del sol sobre el cañón, hallarán el último cofre: el Cántaro de Agua Viva y la Corona de Vida.',
-),
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Un último vuelo como águilas sobre el desierto, Oli! ¡Con ese cofre completaremos los tres mundos!',
-),
-],
-quiz: {
-npcSpeaker: 'Caleb',
-question:
-'¿Qué nos prometió Jesús cuando habló del Agua Viva que nunca se acaba?',
-options: [
-'Su Espíritu Santo y vida eterna que llenan el corazón de paz y alegría',
-'Una piscina gigante en medio de las nubes',
-'Agua salada del mar para beber',
-],
-correctIndex: 0,
-wakaHint:
-'Pista del desierto: el Agua Viva de Jesús refresca nuestra alma con paz y vida eterna.',
-wrongReply:
-'¡Uy, el agua salada da más sed! Busca el regalo eterno que Jesús prometió para nuestro corazón.',
-rewardMessage:
-'¡Gloria a Dios! Jesús nos da el Agua Viva de su Espíritu y la promesa de la Corona de Vida.',
-},
-},
+  id: 'npc_caleb',
+  title: 'Reto Bíblico del Anciano Caleb',
+  subtitle: 'La Subida al Monte de la Promesa',
+  bibleVerse:
+  'Juan 4:14 y Santiago 1:12 · "Recibirá la corona de vida, que Dios ha prometido a los que le aman."',
+  lines: [
+  line(
+  'Caleb',
+  'Anciano Caleb',
+  '¡Fuerza y valentía, pequeños aventureros! Al atravesar el gran arco de piedra y volar por los aros del sol sobre el cañón, hallarán el último cofre: el Cántaro de Agua Viva y la Corona de Vida.',
+  ),
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Un último vuelo como águilas sobre el desierto, Holy! ¡Con ese cofre completaremos los tres mundos!',
+  ),
+  ],
+  quiz: {
+  npcSpeaker: 'Caleb',
+  question:
+  '¿Qué nos prometió Jesús cuando habló del Agua Viva que nunca se acaba?',
+  options: [
+  'Su Espíritu Santo y vida eterna que llenan el corazón de paz y alegría',
+  'Una piscina gigante en medio de las nubes',
+  'Agua salada del mar para beber',
+  ],
+  correctIndex: 0,
+  wakaHint:
+  'Pista del desierto: el Agua Viva de Jesús refresca nuestra alma con paz y vida eterna.',
+  wrongReply:
+  '¡Uy, el agua salada da más sed! Busca el regalo eterno que Jesús prometió para nuestro corazón.',
+  rewardMessage:
+  '¡Gloria a Dios! Jesús nos da el Agua Viva de su Espíritu y la promesa de la Corona de Vida.',
+  },
+  },
 
-// --- Cofres de Tesoros Bíblicos (Mundo 3: Desierto) ---
-w3_gem_marina: {
-id: 'w3_gem_marina',
-title: 'Tesoro Bíblico: La Vasija Dorada del Maná',
-subtitle: 'El Pan del Cielo · Jesús el Pan de Vida',
-bibleVerse:
-'Éxodo 16:15 y Juan 6:35 · "Jesús les dijo: Yo soy el pan de vida."',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Escalaste toda la pirámide de las dunas, Oli! ¡Dentro de este cofre brilla la Vasija Dorada del Maná!',
-),
-line(
-'Oli',
-'Oli la Aventurera',
-'En la Biblia, cuando el pueblo caminaba por el desierto, Dios envió cada mañana el Maná desde el cielo para que nunca les faltara alimento. Esa vasija nos recuerda que Jesús es el Pan de Vida que fortalece nuestro corazón cada día.',
-),
-],
-},
+  // --- Cofres de Tesoros Bíblicos (Mundo 3: Desierto) ---
+  w3_gem_marina: {
+  id: 'w3_gem_marina',
+  title: 'Tesoro Bíblico: La Vasija Dorada del Maná',
+  subtitle: 'El Pan del Cielo · Jesús el Pan de Vida',
+  bibleVerse:
+  'Éxodo 16:15 y Juan 6:35 · "Jesús les dijo: Yo soy el pan de vida."',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Escalaste toda la pirámide de las dunas, Holy! ¡Dentro de este cofre brilla la Vasija Dorada del Maná!',
+  ),
+  line(
+  'Holy',
+  'Holy la Aventurera',
+  'En la Biblia, cuando el pueblo caminaba por el desierto, Dios envió cada mañana el Maná desde el cielo para que nunca les faltara alimento. Esa vasija nos recuerda que Jesús es el Pan de Vida que fortalece nuestro corazón cada día.',
+  ),
+  ],
+  },
 
-w3_gem_esmeralda: {
-id: 'w3_gem_esmeralda',
-title: 'Tesoro Bíblico: El Cayado del Buen Pastor y el Arpa',
-subtitle: 'Salmo 23 y Salmo 150 · Cuidado y Alabanza',
-bibleVerse:
-'Juan 10:11 y Salmos 150:3 · "Yo soy el buen pastor... Alabadle con arpa."',
-lines: [
-line(
-'Oli',
-'Oli la Aventurera',
-'¡Subimos a la meseta roja sobre el oasis y abrimos el cofre! ¡Encontramos el Cayado del Buen Pastor junto al Arpa Dorada de David!',
-),
-line(
-'Waka',
-'Waka la Guacamaya',
-'En la Biblia, el cayado representa el amor con que Jesús, nuestro Buen Pastor, guía y rescata a sus ovejitas. Y el arpa nos recuerda los Salmos con que David cantaba con alegría y gratitud a Dios.',
-),
-],
-},
+  w3_gem_esmeralda: {
+  id: 'w3_gem_esmeralda',
+  title: 'Tesoro Bíblico: El Cayado del Buen Pastor y el Arpa',
+  subtitle: 'Salmo 23 y Salmo 150 · Cuidado y Alabanza',
+  bibleVerse:
+  'Juan 10:11 y Salmos 150:3 · "Yo soy el buen pastor... Alabadle con arpa."',
+  lines: [
+  line(
+  'Holy',
+  'Holy la Aventurera',
+  '¡Subimos a la meseta roja sobre el oasis y abrimos el cofre! ¡Encontramos el Cayado del Buen Pastor junto al Arpa Dorada de David!',
+  ),
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  'En la Biblia, el cayado representa el amor con que Jesús, nuestro Buen Pastor, guía y rescata a sus ovejitas. Y el arpa nos recuerda los Salmos con que David cantaba con alegría y gratitud a Dios.',
+  ),
+  ],
+  },
 
-w3_gem_celestial: {
-id: 'w3_gem_celestial',
-title: 'Tesoro Bíblico: El Cántaro de Agua Viva y la Corona',
-subtitle: 'Fuente de Vida Eterna · La Promesa de Jesús',
-bibleVerse:
-'Juan 4:14 y Santiago 1:12 · "Una fuente de agua que salte para vida eterna."',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Volamos sobre todo el desierto y abrimos el último cofre! ¡Son el Cántaro de Agua Viva y la Corona de Vida!',
-),
-line(
-'Oli',
-'Oli la Aventurera',
-'En el desierto el agua es vida, y Jesús prometió darnos el Agua Viva que llena el corazón de paz verdadera. Y la Corona de Vida nos recuerda la hermosa promesa del cielo para todos los que aman a Jesús.',
-),
-],
-},
+  w3_gem_celestial: {
+  id: 'w3_gem_celestial',
+  title: 'Tesoro Bíblico: El Cántaro de Agua Viva y la Corona',
+  subtitle: 'Fuente de Vida Eterna · La Promesa de Jesús',
+  bibleVerse:
+  'Juan 4:14 y Santiago 1:12 · "Una fuente de agua que salte para vida eterna."',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Volamos sobre todo el desierto y abrimos el último cofre! ¡Son el Cántaro de Agua Viva y la Corona de Vida!',
+  ),
+  line(
+  'Holy',
+  'Holy la Aventurera',
+  'En el desierto el agua es vida, y Jesús prometió darnos el Agua Viva que llena el corazón de paz verdadera. Y la Corona de Vida nos recuerda la hermosa promesa del cielo para todos los que aman a Jesús.',
+  ),
+  ],
+  },
 
-// ============================================================================
-// PORTAL, GUÍA WAKA POR MUNDO Y CELEBRACIONES
-// ============================================================================
-portal_ready_w1: {
-id: 'portal_ready_w1',
-title: '¡El Portal hacia la Caverna Subterránea Despertó!',
-bibleVerse: 'Juan 10:9 · "Yo soy la puerta."',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Abrimos los tres Cofres Bíblicos de la isla! ¡Mira el templo, el Portal Dorado está encendido y listo para llevarnos a la Caverna Subterránea de Cristal!',
-),
-line(
-'Oli',
-'Oli la Aventurera',
-'¡Allá vamos, Waka! ¡Volemos directo hacia la luz del Portal Dorado!',
-),
-],
-},
+  // ============================================================================
+  // PORTAL, GUÍA WAKA POR MUNDO Y CELEBRACIONES
+  // ============================================================================
+  portal_ready_w1: {
+  id: 'portal_ready_w1',
+  title: '¡El Portal hacia la Caverna Subterránea Despertó!',
+  bibleVerse: 'Juan 10:9 · "Yo soy la puerta."',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Abrimos los tres Cofres Bíblicos de la isla! ¡Mira el templo, el Portal Dorado está encendido y listo para llevarnos a la Caverna Subterránea de Cristal!',
+  ),
+  line(
+  'Holy',
+  'Holy la Aventurera',
+  '¡Allá vamos, Waka! ¡Volemos directo hacia la luz del Portal Dorado!',
+  ),
+  ],
+  },
 
-portal_ready_w2: {
-id: 'portal_ready_w2',
-title: '¡El Portal hacia el Desierto Dorado Despertó!',
-bibleVerse: 'Juan 1:5 · "La luz en las tinieblas resplandece."',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Increíble, Oli! ¡Descubrimos los tres Cofres Bíblicos de la caverna subterránea! El Portal del Santuario de la Roca se ha abierto para llevarnos al Desierto Dorado.',
-),
-line(
-'Oli',
-'Oli la Aventurera',
-'¡Volemos hacia el portal del santuario para descubrir el Oasis de Promesa!',
-),
-],
-},
+  portal_ready_w2: {
+  id: 'portal_ready_w2',
+  title: '¡El Portal hacia el Desierto Dorado Despertó!',
+  bibleVerse: 'Juan 1:5 · "La luz en las tinieblas resplandece."',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Increíble, Holy! ¡Descubrimos los tres Cofres Bíblicos de la caverna subterránea! El Portal del Santuario de la Roca se ha abierto para llevarnos al Desierto Dorado.',
+  ),
+  line(
+  'Holy',
+  'Holy la Aventurera',
+  '¡Volemos hacia el portal del santuario para descubrir el Oasis de Promesa!',
+  ),
+  ],
+  },
 
-portal_ready_w3: {
-id: 'portal_ready_w3',
-title: '¡El Portal de la Promesa Resplandece!',
-bibleVerse: '2 Timoteo 4:7 · "He acabado la carrera, he guardado la fe."',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Lo logramos, Oli! ¡Los tres Cofres Bíblicos del desierto están abiertos! ¡Sube al santuario del Monte de la Promesa y cruza el Portal Dorado final!',
-),
-line(
-'Oli',
-'Oli la Aventurera',
-'¡Qué aventura tan inolvidable por la isla, la caverna y el desierto! ¡Vamos al Portal Dorado!',
-),
-],
-},
+  portal_ready_w3: {
+  id: 'portal_ready_w3',
+  title: '¡El Portal de la Promesa Resplandece!',
+  bibleVerse: '2 Timoteo 4:7 · "He acabado la carrera, he guardado la fe."',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Lo logramos, Holy! ¡Los tres Cofres Bíblicos del desierto están abiertos! ¡Sube al santuario del Monte de la Promesa y cruza el Portal Dorado final!',
+  ),
+  line(
+  'Holy',
+  'Holy la Aventurera',
+  '¡Qué aventura tan inolvidable por la isla, la caverna y el desierto! ¡Vamos al Portal Dorado!',
+  ),
+  ],
+  },
 
-portal_locked_hint: {
-id: 'portal_locked_hint',
-title: 'Faltan Cofres Bíblicos por Abrir',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Alto ahí, capitana! El Portal Dorado todavía está dormido. Primero debemos abrir los tres Cofres de Tesoros Bíblicos de este mundo.',
-),
-],
-},
+  portal_locked_hint: {
+  id: 'portal_locked_hint',
+  title: 'Faltan Cofres Bíblicos por Abrir',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Alto ahí, capitana! El Portal Dorado todavía está dormido. Primero debemos abrir los tres Cofres de Tesoros Bíblicos de este mundo.',
+  ),
+  ],
+  },
 
-victory_w1: {
-id: 'victory_w1',
-title: '¡Isla del Portal Dorado Completada!',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Lo logramos, Oli! ¡Prepárate porque al cruzar este portal bajaremos a la increíble Caverna Subterránea de Cristal!',
-),
-],
-},
+  victory_w1: {
+  id: 'victory_w1',
+  title: '¡Isla del Portal Dorado Completada!',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Lo logramos, Holy! ¡Prepárate porque al cruzar este portal bajaremos a la increíble Caverna Subterránea de Cristal!',
+  ),
+  ],
+  },
 
-victory_w2: {
-id: 'victory_w2',
-title: '¡Caverna Subterránea Completada!',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Salimos victoriosos de las profundidades! ¡Ahora el Portal Dorado nos lleva al soleado Desierto Dorado del Éxodo!',
-),
-],
-},
+  victory_w2: {
+  id: 'victory_w2',
+  title: '¡Caverna Subterránea Completada!',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Salimos victoriosos de las profundidades! ¡Ahora el Portal Dorado nos lleva al soleado Desierto Dorado del Éxodo!',
+  ),
+  ],
+  },
 
-victory_w3: {
-id: 'victory_w3',
-title: '¡Gran Aventura Bíblica Completada!',
-lines: [
-line(
-'Oli',
-'Oli la Aventurera',
-'¡Completamos los tres mundos y reunimos los nueve Tesoros Bíblicos! Gracias por acompañarme en esta gran aventura de fe.',
-),
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Eres la mejor exploradora del mundo, Oli! Podemos volver a visitar la isla, la caverna o el desierto cuando tú quieras.',
-),
-],
-},
+  victory_w3: {
+  id: 'victory_w3',
+  title: '¡Gran Aventura Bíblica Completada!',
+  lines: [
+  line(
+  'Holy',
+  'Holy la Aventurera',
+  '¡Completamos los tres mundos y reunimos los nueve Tesoros Bíblicos! Gracias por acompañarme en esta gran aventura de fe.',
+  ),
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Eres la mejor exploradora del mundo, Holy! Podemos volver a visitar la isla, la caverna o el desierto cuando tú quieras.',
+  ),
+  ],
+  },
 
-// --- Consejos Graciosos de Waka Específicos por Mundo ---
-w1_waka_tip_1: {
-id: 'w1_waka_tip_1',
-title: 'Radar Plumífero de Waka · Isla',
-bibleVerse: 'Filipenses 4:13 · "Todo lo puedo en Cristo que me fortalece."',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Reporte de radar plumífero! En la isla busca los pilares de la bahía pirata, salta por los hongos de la cascada y vuela por los aros del cielo. ¡Todo lo podemos en Cristo que nos fortalece!',
-),
-],
-},
+  // --- Consejos Graciosos de Waka Específicos por Mundo ---
+  w1_waka_tip_1: {
+  id: 'w1_waka_tip_1',
+  title: 'Radar Plumífero de Waka · Isla',
+  bibleVerse: 'Filipenses 4:13 · "Todo lo puedo en Cristo que me fortalece."',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Reporte de radar plumífero! En la isla busca los pilares de la bahía pirata, salta por los hongos de la cascada y vuela por los aros del cielo. ¡Todo lo podemos en Cristo que nos fortalece!',
+  ),
+  ],
+  },
 
-w1_waka_tip_2: {
-id: 'w1_waka_tip_2',
-title: 'Chiste Tropical de Waka',
-bibleVerse: 'Proverbios 17:22 · "El corazón alegre constituye buen remedio."',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¿Sabes cuál es el deporte favorito de los cangrejos de esta isla? ¡Caminar de ladito mientras buscan tesoros! Habla con el Capitán Coral, Mateo e Ixchel para hacer sus retos bíblicos.',
-),
-],
-},
+  w1_waka_tip_2: {
+  id: 'w1_waka_tip_2',
+  title: 'Chiste Tropical de Waka',
+  bibleVerse: 'Proverbios 17:22 · "El corazón alegre constituye buen remedio."',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¿Sabes cuál es el deporte favorito de los cangrejos de esta isla? ¡Caminar de ladito mientras buscan tesoros! Habla con el Capitán Coral, Mateo e Ixchel para hacer sus retos bíblicos.',
+  ),
+  ],
+  },
 
-w2_waka_tip_1: {
-id: 'w2_waka_tip_1',
-title: 'Radar de Cristales de Waka · Caverna',
-bibleVerse: 'Salmos 27:1 · "Jehová es mi luz y mi salvación; ¿de quién temeré?"',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Eco, eco, eco! En la caverna subterránea salta sobre las columnas moradas del lago luminoso, usa los géiseres de cristal del este y vuela por los aros de linternas bajo el techo.',
-),
-],
-},
+  w2_waka_tip_1: {
+  id: 'w2_waka_tip_1',
+  title: 'Radar de Cristales de Waka · Caverna',
+  bibleVerse: 'Salmos 27:1 · "Jehová es mi luz y mi salvación; ¿de quién temeré?"',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Eco, eco, eco! En la caverna subterránea salta sobre las columnas moradas del lago luminoso, usa los géiseres de cristal del este y vuela por los aros de linternas bajo el techo.',
+  ),
+  ],
+  },
 
-w2_waka_tip_2: {
-id: 'w2_waka_tip_2',
-title: 'Chiste Subterráneo de Waka',
-bibleVerse: 'Juan 1:5 · "La luz en las tinieblas resplandece."',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Me encanta esta cueva porque mis plumas rojas brillan como una linterna con alas! No olvides saludar al Minero Noé, a la Arqueóloga Ester y al Anciano Samuel.',
-),
-],
-},
+  w2_waka_tip_2: {
+  id: 'w2_waka_tip_2',
+  title: 'Chiste Subterráneo de Waka',
+  bibleVerse: 'Juan 1:5 · "La luz en las tinieblas resplandece."',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Me encanta esta cueva porque mis plumas rojas brillan como una linterna con alas! No olvides saludar al Minero Noé, a la Arqueóloga Ester y al Anciano Samuel.',
+  ),
+  ],
+  },
 
-w3_waka_tip_1: {
-id: 'w3_waka_tip_1',
-title: 'Radar del Desierto de Waka',
-bibleVerse: 'Isaías 40:31 · "Levantarán alas como las águilas."',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'¡Alerta de arena en las plumas! En el desierto sube la pirámide dorada al oeste, aprovecha los remolinos junto al oasis de las ovejas y vuela sobre el gran arco de piedra roja.',
-),
-],
-},
+  w3_waka_tip_1: {
+  id: 'w3_waka_tip_1',
+  title: 'Radar del Desierto de Waka',
+  bibleVerse: 'Isaías 40:31 · "Levantarán alas como las águilas."',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  '¡Alerta de arena en las plumas! En el desierto sube la pirámide dorada al oeste, aprovecha los remolinos junto al oasis de las ovejas y vuela sobre el gran arco de piedra roja.',
+  ),
+  ],
+  },
 
-w3_waka_tip_2: {
-id: 'w3_waka_tip_2',
-title: 'Chiste del Oasis de Waka',
-bibleVerse: 'Salmos 23:1 · "Jehová es mi pastor; nada me faltará."',
-lines: [
-line(
-'Waka',
-'Waka la Guacamaya',
-'Le pregunté a un camello si tenía sed y me dijo que prefería beber Agua Viva junto al oasis. ¡Habla con Miriam, David y Caleb para completar sus retos bíblicos!',
-),
-],
-},
-};
+  w3_waka_tip_2: {
+  id: 'w3_waka_tip_2',
+  title: 'Chiste del Oasis de Waka',
+  bibleVerse: 'Salmos 23:1 · "Jehová es mi pastor; nada me faltará."',
+  lines: [
+  line(
+  'Waka',
+  'Waka la Guacamaya',
+  'Le pregunté a un camello si tenía sed y me dijo que prefería beber Agua Viva junto al oasis. ¡Habla con Miriam, David y Caleb para completar sus retos bíblicos!',
+  ),
+  ],
+  },
+  };

@@ -40,6 +40,7 @@ type GamePhaseState,
 type MagicStarDef,
 type NpcDef,
 type PlayerSimState,
+type SolidCollider,
 type SunGemDef,
 type SunGemId,
 type WindRingDef,
@@ -192,6 +193,7 @@ private readonly _camTarget = new THREE.Vector3();
 private readonly _camDesired = new THREE.Vector3();
 private readonly _lookDesired = new THREE.Vector3();
 private readonly _sunOffset = new THREE.Vector3(24, 38, -28);
+private activeColliders: SolidCollider[] = [];
 
 private getTargetPixelRatio(): number {
 if (this.isSoftwareGl) return 1;
@@ -294,6 +296,7 @@ new THREE.Vector2(width, height),
 this.composer.addPass(this.bloomPass);
 this.composer.addPass(new OutputPass());
 }
+
 const rimLight = new THREE.DirectionalLight(0xffcb7d, 0.32);
 rimLight.position.set(-28, 18, 32);
 this.scene.add(rimLight);
@@ -326,11 +329,11 @@ PIRATE_SHIP_ORIGIN.z,
 this.pirateShip.rotation.y = 0.72;
 this.scene.add(this.pirateShip);
 
-// Explorer Girl Protagonist (Oli)
+// Explorer Girl Protagonist (Holy)
 this.explorerRig = createExplorerGirl();
 this.scene.add(this.explorerRig.root);
 
-// Soft Contact Shadow Disc under Oli
+// Soft Contact Shadow Disc under Holy
 this.contactShadow = new THREE.Mesh(
 new THREE.CircleGeometry(0.65, 18),
 new THREE.MeshBasicMaterial({
@@ -358,7 +361,10 @@ this.bindEvents();
 
 if (typeof window !== 'undefined') {
 fetch('/api/health')
-.then((r) => (r.ok ? r.json() : null))
+.then((r) => {
+const ct = r.headers.get('content-type') || '';
+return r.ok && ct.includes('application/json') ? r.json() : null;
+})
 .then((data: { ttsConfigured?: boolean } | null) => {
 if (data && typeof data.ttsConfigured === 'boolean') {
 this.audio.setServerTtsAvailable(data.ttsConfigured);
@@ -739,7 +745,7 @@ quizSolved: true,
 this.player.flightEnergy = 100;
 this.audio.playTreasureChestOpen();
 if (quizReward) {
-this.audio.speakDynamicLine('Oli', quizReward);
+this.audio.speakDynamicLine('Holy', quizReward);
 }
 this.world.sparkles.emit(
 this.player.x,
@@ -900,500 +906,512 @@ this.keys.add(code);
 private handleKeyUp = (e: KeyboardEvent): void => {
 this.keys.delete(e.code);
 };
+
 private handleBlur = (): void => {
-  this.keys.clear();
-  this.resetVirtualInput();
-  this.isDragging = false;
-  };
+this.keys.clear();
+this.resetVirtualInput();
+this.isDragging = false;
+};
 
-  private handlePointerDown = (e: PointerEvent): void => {
-  if (this.phase !== 'playing') return;
-  this.isDragging = true;
-  this.lastPointerX = e.clientX;
-  this.lastPointerY = e.clientY;
-  this.audio.startAmbience();
-  };
+private handlePointerDown = (e: PointerEvent): void => {
+if (this.phase !== 'playing') return;
+this.isDragging = true;
+this.lastPointerX = e.clientX;
+this.lastPointerY = e.clientY;
+this.audio.startAmbience();
+};
 
-  private handlePointerMove = (e: PointerEvent): void => {
-  if (!this.isDragging || this.phase !== 'playing') return;
-  const dx = e.clientX - this.lastPointerX;
-  const dy = e.clientY - this.lastPointerY;
-  this.lastPointerX = e.clientX;
-  this.lastPointerY = e.clientY;
+private handlePointerMove = (e: PointerEvent): void => {
+if (!this.isDragging || this.phase !== 'playing') return;
+const dx = e.clientX - this.lastPointerX;
+const dy = e.clientY - this.lastPointerY;
+this.lastPointerX = e.clientX;
+this.lastPointerY = e.clientY;
 
-  this.cameraYaw -= dx * 0.0055;
-  this.cameraPitch = THREE.MathUtils.clamp(
-  this.cameraPitch + dy * 0.004,
-  -0.12,
-  0.72,
-  );
-  };
+this.cameraYaw -= dx * 0.0055;
+this.cameraPitch = THREE.MathUtils.clamp(
+this.cameraPitch + dy * 0.004,
+-0.12,
+0.72,
+);
+};
 
-  private handlePointerUp = (): void => {
-  this.isDragging = false;
-  };
+private handlePointerUp = (): void => {
+this.isDragging = false;
+};
 
-  private handleResize = (): void => {
-  const width = this.container.clientWidth || window.innerWidth;
-  const height = this.container.clientHeight || window.innerHeight;
-  this.camera.aspect = width / height;
-  this.camera.updateProjectionMatrix();
-  this.renderer.setSize(width, height);
-  if (this.composer) {
-  this.composer.setSize(width, height);
-  }
-  };
+private handleResize = (): void => {
+const width = this.container.clientWidth || window.innerWidth;
+const height = this.container.clientHeight || window.innerHeight;
+this.camera.aspect = width / height;
+this.camera.updateProjectionMatrix();
+this.renderer.setSize(width, height);
+if (this.composer) {
+this.composer.setSize(width, height);
+}
+};
 
-  private bindEvents(): void {
-  window.addEventListener('keydown', this.handleKeyDown);
-  window.addEventListener('keyup', this.handleKeyUp);
-  window.addEventListener('blur', this.handleBlur);
-  window.addEventListener('resize', this.handleResize);
-  const canvas = this.renderer.domElement;
-  canvas.addEventListener('pointerdown', this.handlePointerDown);
-  window.addEventListener('pointermove', this.handlePointerMove);
-  window.addEventListener('pointerup', this.handlePointerUp);
-  }
+private bindEvents(): void {
+window.addEventListener('keydown', this.handleKeyDown);
+window.addEventListener('keyup', this.handleKeyUp);
+window.addEventListener('blur', this.handleBlur);
+window.addEventListener('resize', this.handleResize);
+const canvas = this.renderer.domElement;
+canvas.addEventListener('pointerdown', this.handlePointerDown);
+window.addEventListener('pointermove', this.handlePointerMove);
+window.addEventListener('pointerup', this.handlePointerUp);
+}
 
-  private afterDraw(cb: () => void): void {
-  const gl = this.renderer.getContext() as WebGL2RenderingContext;
-  const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-  gl.flush();
-  const poll = () => {
-  if (this.disposed) {
-  if (sync) gl.deleteSync(sync);
-  return;
-  }
-  const state = sync && gl.getSyncParameter(sync, gl.SYNC_STATUS);
-  if (state === gl.UNSIGNALED) {
-  this.frameId = window.setTimeout(poll, 5);
-  } else {
-  if (sync) gl.deleteSync(sync);
-  this.frameId = window.setTimeout(cb, 80);
-  }
-  };
-  this.frameId = window.setTimeout(poll, 5);
-  }
+private afterDraw(cb: () => void): void {
+const gl = this.renderer.getContext() as WebGL2RenderingContext;
+const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+gl.flush();
+const poll = () => {
+if (this.disposed) {
+if (sync) gl.deleteSync(sync);
+return;
+}
+const state = sync && gl.getSyncParameter(sync, gl.SYNC_STATUS);
+if (state === gl.UNSIGNALED) {
+this.frameId = window.setTimeout(poll, 5);
+} else {
+if (sync) gl.deleteSync(sync);
+this.frameId = window.setTimeout(cb, 80);
+}
+};
+this.frameId = window.setTimeout(poll, 5);
+}
 
-  private tick = (): void => {
-  if (this.disposed) return;
+private tick = (): void => {
+if (this.disposed) return;
 
-  const now = performance.now();
-  const rawDt = (now - this.lastTimestamp) / 1000;
-  this.lastTimestamp = now;
-  const maxStep = this.isSoftwareGl ? 0.12 : 0.05;
-  const frameDt = Math.min(Math.max(rawDt || 0.016, 0.001), maxStep);
-  const dt = clampDt(frameDt);
+const now = performance.now();
+const rawDt = (now - this.lastTimestamp) / 1000;
+this.lastTimestamp = now;
+const maxStep = this.isSoftwareGl ? 0.12 : 0.05;
+const frameDt = Math.min(Math.max(rawDt || 0.016, 0.001), maxStep);
+const dt = clampDt(frameDt);
 
-  if (this.phase !== 'paused') {
-  this.totalTime += frameDt;
-  }
+if (this.phase !== 'paused') {
+this.totalTime += frameDt;
+}
 
-  const t = this.totalTime;
-  this.skyMat.uniforms.uTime.value = t;
+const t = this.totalTime;
+this.skyMat.uniforms.uTime.value = t;
 
-  if (this.worldId === 1) {
-  this.oceanMat.uniforms.uTime.value = t;
-  this.pirateShip.position.y =
-  PIRATE_SHIP_ORIGIN.y + Math.sin(t * 1.25) * 0.24;
-  this.pirateShip.rotation.z = Math.sin(t * 0.95) * 0.045;
-  this.pirateShip.rotation.x = Math.cos(t * 1.15) * 0.03;
-  }
+if (this.worldId === 1) {
+this.oceanMat.uniforms.uTime.value = t;
+this.pirateShip.position.y =
+PIRATE_SHIP_ORIGIN.y + Math.sin(t * 1.25) * 0.24;
+this.pirateShip.rotation.z = Math.sin(t * 0.95) * 0.045;
+this.pirateShip.rotation.x = Math.cos(t * 1.15) * 0.03;
+}
 
-  this.world.update(t, dt, isPortalAwakened(this.player));
+this.world.update(t, dt, isPortalAwakened(this.player));
 
-  if (this.phase === 'title') {
-  this.positionTitleCamera(t);
-  updateExplorerPose(this.explorerRig, {
-  time: t,
-  dt,
-  speed: 0,
-  walkDistance: 0,
-  isFlying: false,
-  grounded: true,
-  verticalVel: 0,
-  turnRate: 0,
-  });
-  updateMacawCompanion(
-  this.macawRig,
-  this.player.x,
-  this.player.y,
-  this.player.z,
-  this.player.yaw,
-  false,
-  t,
-  dt,
-  );
-  } else if (this.phase === 'playing') {
-  if (this.keys.has('KeyQ')) this.cameraYaw += 1.9 * dt;
-  if (this.keys.has('KeyE')) this.cameraYaw -= 1.9 * dt;
+if (this.phase === 'title') {
+this.positionTitleCamera(t);
+updateExplorerPose(this.explorerRig, {
+time: t,
+dt,
+speed: 0,
+walkDistance: 0,
+isFlying: false,
+grounded: true,
+verticalVel: 0,
+turnRate: 0,
+});
+updateMacawCompanion(
+this.macawRig,
+this.player.x,
+this.player.y,
+this.player.z,
+this.player.yaw,
+false,
+t,
+dt,
+);
+} else if (this.phase === 'playing') {
+if (this.keys.has('KeyQ')) this.cameraYaw += 1.9 * dt;
+if (this.keys.has('KeyE')) this.cameraYaw -= 1.9 * dt;
 
-  if (this.storyCueDismissTimer > 0 && this.activeStoryCue) {
-  this.storyCueDismissTimer -= dt;
-  if (this.storyCueDismissTimer <= 0) {
-  this.activeStoryCue = null;
-  this.pushHud(true);
-  }
-  }
+if (this.storyCueDismissTimer > 0 && this.activeStoryCue) {
+this.storyCueDismissTimer -= dt;
+if (this.storyCueDismissTimer <= 0) {
+this.activeStoryCue = null;
+this.pushHud(true);
+}
+}
 
-  if (this.portalHintCooldown > 0) {
-  this.portalHintCooldown = Math.max(0, this.portalHintCooldown - dt);
-  }
+if (this.portalHintCooldown > 0) {
+this.portalHintCooldown = Math.max(0, this.portalHintCooldown - dt);
+}
 
-  const groundFn = (x: number, z: number) =>
-  getWorldGroundHeight(this.worldId, x, z);
-  const portalPos = getWorldPortalPos(this.worldId);
-  const waterLevel = getWorldWaterLevel(this.worldId);
-  const maxFlightY = getWorldMaxFlightY(this.worldId);
+const groundFn = (x: number, z: number) =>
+getWorldGroundHeight(this.worldId, x, z);
+const portalPos = getWorldPortalPos(this.worldId);
+const waterLevel = getWorldWaterLevel(this.worldId);
+const maxFlightY = getWorldMaxFlightY(this.worldId);
 
-  const subSteps = frameDt > 0.055 ? 2 : 1;
-  const stepDt = frameDt / subSteps;
-  const inputSnap = {
-  forward: this.keys.has('KeyW') || this.keys.has('ArrowUp'),
-  backward: this.keys.has('KeyS') || this.keys.has('ArrowDown'),
-  left: this.keys.has('KeyA') || this.keys.has('ArrowLeft'),
-  right: this.keys.has('KeyD') || this.keys.has('ArrowRight'),
-  jumpOrAscend: this.keys.has('Space') || this.virtualInput.jumpOrAscend,
-  descend:
-  this.keys.has('ControlLeft') ||
-  this.keys.has('KeyC') ||
-  this.virtualInput.descend,
-  sprint: this.keys.has('ShiftLeft') || this.keys.has('ShiftRight'),
-  cameraYaw: this.cameraYaw,
-  analogX: this.virtualInput.analogX,
-  analogY: this.virtualInput.analogY,
-  };
+const subSteps = frameDt > 0.055 ? 2 : 1;
+const stepDt = frameDt / subSteps;
+const inputSnap = {
+forward: this.keys.has('KeyW') || this.keys.has('ArrowUp'),
+backward: this.keys.has('KeyS') || this.keys.has('ArrowDown'),
+left: this.keys.has('KeyA') || this.keys.has('ArrowLeft'),
+right: this.keys.has('KeyD') || this.keys.has('ArrowRight'),
+jumpOrAscend: this.keys.has('Space') || this.virtualInput.jumpOrAscend,
+descend:
+this.keys.has('ControlLeft') ||
+this.keys.has('KeyC') ||
+this.virtualInput.descend,
+sprint: this.keys.has('ShiftLeft') || this.keys.has('ShiftRight'),
+cameraYaw: this.cameraYaw,
+analogX: this.virtualInput.analogX,
+analogY: this.virtualInput.analogY,
+};
 
-  let events = stepPlayerSimulation(
-  this.player,
-  inputSnap,
-  this.starsDef,
-  stepDt,
-  groundFn,
-  this.gemsDef,
-  this.bouncePadsDef,
-  this.windRingsDef,
-  portalPos,
-  waterLevel,
-  maxFlightY,
-  );
+this.activeColliders.length = 0;
+this.activeColliders.push(
+...this.world.staticColliders,
+...this.world.dynamicColliders,
+);
 
-  if (subSteps === 2) {
-  const events2 = stepPlayerSimulation(
-  this.player,
-  inputSnap,
-  this.starsDef,
-  stepDt,
-  groundFn,
-  this.gemsDef,
-  this.bouncePadsDef,
-  this.windRingsDef,
-  portalPos,
-  waterLevel,
-  maxFlightY,
-  );
-  events = {
-  jumped: events.jumped || events2.jumped,
-  landed: events.landed || events2.landed,
-  startedFlying: events.startedFlying || events2.startedFlying,
-  collectedStars: [...events.collectedStars, ...events2.collectedStars],
-  collectedGems: [...events.collectedGems, ...events2.collectedGems],
-  unlockedFlightNow:
-  events.unlockedFlightNow || events2.unlockedFlightNow,
-  bouncedMushroom: events.bouncedMushroom || events2.bouncedMushroom,
-  passedWindRing: events.passedWindRing || events2.passedWindRing,
-  portalReadyNow: events.portalReadyNow || events2.portalReadyNow,
-  reachedPortal: events.reachedPortal || events2.reachedPortal,
-  };
-  }
+let events = stepPlayerSimulation(
+this.player,
+inputSnap,
+this.starsDef,
+stepDt,
+groundFn,
+this.gemsDef,
+this.bouncePadsDef,
+this.windRingsDef,
+portalPos,
+waterLevel,
+maxFlightY,
+this.activeColliders,
+);
 
-  for (const id of events.collectedStars) {
-  const sv = this.world.starVisuals.find((s) => s.id === id);
-  if (sv) {
-  sv.collected = true;
-  sv.group.visible = false;
-  this.world.sparkles.emit(
-  sv.group.position.x,
-  sv.group.position.y,
-  sv.group.position.z,
-  26,
-  1.4,
-  1.6,
-  );
-  }
-  this.audio.playStarPickup(this.player.starsCollected.length);
-  if (this.worldId === 1 && this.player.starsCollected.length === 1) {
-  this.triggerStoryCue('first_star');
-  }
-  }
+if (subSteps === 2) {
+const events2 = stepPlayerSimulation(
+this.player,
+inputSnap,
+this.starsDef,
+stepDt,
+groundFn,
+this.gemsDef,
+this.bouncePadsDef,
+this.windRingsDef,
+portalPos,
+waterLevel,
+maxFlightY,
+this.activeColliders,
+);
+events = {
+jumped: events.jumped || events2.jumped,
+landed: events.landed || events2.landed,
+startedFlying: events.startedFlying || events2.startedFlying,
+collectedStars: [...events.collectedStars, ...events2.collectedStars],
+collectedGems: [...events.collectedGems, ...events2.collectedGems],
+unlockedFlightNow:
+events.unlockedFlightNow || events2.unlockedFlightNow,
+bouncedMushroom: events.bouncedMushroom || events2.bouncedMushroom,
+passedWindRing: events.passedWindRing || events2.passedWindRing,
+portalReadyNow: events.portalReadyNow || events2.portalReadyNow,
+reachedPortal: events.reachedPortal || events2.reachedPortal,
+};
+}
 
-  if (events.unlockedFlightNow) {
-  this.unlockBannerTimer = 4.5;
-  document.body.dataset.flight = 'unlocked';
-  this.audio.playFlightUnlock();
-  this.triggerStoryCue('flight_unlocked');
-  this.world.sparkles.emit(
-  this.player.x,
-  this.player.y + 0.9,
-  this.player.z,
-  42,
-  2.2,
-  2.1,
-  );
-  }
-  if (this.unlockBannerTimer > 0) {
-  this.unlockBannerTimer = Math.max(0, this.unlockBannerTimer - dt);
-  }
+for (const id of events.collectedStars) {
+const sv = this.world.starVisuals.find((s) => s.id === id);
+if (sv) {
+sv.collected = true;
+sv.group.visible = false;
+this.world.sparkles.emit(
+sv.group.position.x,
+sv.group.position.y,
+sv.group.position.z,
+26,
+1.4,
+1.6,
+);
+}
+this.audio.playStarPickup(this.player.starsCollected.length);
+if (
+this.worldId === 1 &&
+this.player.starsCollected.length === 1 &&
+!this.activeStoryCue
+) {
+this.triggerStoryCue('first_star');
+}
+}
 
-  if (events.bouncedMushroom) {
-  this.audio.playMushroomBounce();
-  const mv = this.world.mushroomVisuals.find(
-  (m) => m.id === events.bouncedMushroom?.id,
-  );
-  if (mv) mv.bounceAnim = 1.0;
-  this.world.sparkles.emit(
-  events.bouncedMushroom.x,
-  events.bouncedMushroom.y + 1.2,
-  events.bouncedMushroom.z,
-  22,
-  1.5,
-  2.2,
-  );
-  if (!this.heardBounceCue && !this.activeStoryCue) {
-  this.heardBounceCue = true;
-  this.triggerStoryCue(WORLD_THEMES[this.worldId].bounceCueId);
-  }
-  }
+if (events.unlockedFlightNow) {
+this.unlockBannerTimer = 4.5;
+document.body.dataset.flight = 'unlocked';
+this.audio.playFlightUnlock();
+this.triggerStoryCue('flight_unlocked');
+this.world.sparkles.emit(
+this.player.x,
+this.player.y + 0.9,
+this.player.z,
+42,
+2.2,
+2.1,
+);
+}
+if (this.unlockBannerTimer > 0) {
+this.unlockBannerTimer = Math.max(0, this.unlockBannerTimer - dt);
+}
 
-  if (events.passedWindRing) {
-    this.audio.playWindRingBoost();
-    this.world.sparkles.emit(
-    events.passedWindRing.x,
-    events.passedWindRing.y,
-    events.passedWindRing.z,
-    28,
-    2.0,
-    1.6,
-    );
-    if (!this.heardWindRingCue && !this.activeStoryCue) {
-    this.heardWindRingCue = true;
-    this.triggerStoryCue('first_wind_ring');
-    }
-    }
+if (events.bouncedMushroom) {
+this.audio.playMushroomBounce();
+const mv = this.world.mushroomVisuals.find(
+(m) => m.id === events.bouncedMushroom?.id,
+);
+if (mv) mv.bounceAnim = 1.0;
+this.world.sparkles.emit(
+events.bouncedMushroom.x,
+events.bouncedMushroom.y + 1.2,
+events.bouncedMushroom.z,
+22,
+1.5,
+2.2,
+);
+if (!this.heardBounceCue && !this.activeStoryCue) {
+this.heardBounceCue = true;
+this.triggerStoryCue(WORLD_THEMES[this.worldId].bounceCueId);
+}
+}
 
-    for (const gem of events.collectedGems) {
-    const cv = this.world.chestVisuals.find((c) => c.id === gem.id);
-    if (cv) {
-    cv.collected = true;
-    this.world.sparkles.emit(gem.x, gem.y + 0.6, gem.z, 45, 2.4, 2.2);
-    }
-    this.audio.playTreasureChestOpen();
-    this.triggerStoryCue(gem.cueId);
-    }
+if (events.passedWindRing) {
+this.audio.playWindRingBoost();
+this.world.sparkles.emit(
+events.passedWindRing.x,
+events.passedWindRing.y,
+events.passedWindRing.z,
+28,
+2.0,
+1.6,
+);
+if (!this.heardWindRingCue && !this.activeStoryCue) {
+this.heardWindRingCue = true;
+this.triggerStoryCue('first_wind_ring');
+}
+}
 
-    if (events.portalReadyNow) {
-    this.audio.playFlightUnlock();
-    this.pendingCueQueue.push(WORLD_THEMES[this.worldId].portalReadyCueId);
-    }
+for (const gem of events.collectedGems) {
+const cv = this.world.chestVisuals.find((c) => c.id === gem.id);
+if (cv) {
+cv.collected = true;
+this.world.sparkles.emit(gem.x, gem.y + 0.6, gem.z, 45, 2.4, 2.2);
+}
+this.audio.playTreasureChestOpen();
+this.triggerStoryCue(gem.cueId);
+}
 
-    const nearestNpc = findNearestNpc(
-    this.player.x,
-    this.player.y,
-    this.player.z,
-    this.npcsDef,
-    );
-    if (nearestNpc?.id !== this.nearbyNpc?.id) {
-    this.nearbyNpc = nearestNpc;
-    if (nearestNpc && !this.greetedNpcs.has(nearestNpc.id)) {
-    this.greetedNpcs.add(nearestNpc.id);
-    this.triggerStoryCue(nearestNpc.cueId);
-    }
-    this.pushHud(true);
-    }
+if (events.portalReadyNow) {
+this.audio.playFlightUnlock();
+this.pendingCueQueue.push(WORLD_THEMES[this.worldId].portalReadyCueId);
+}
 
-    if (
-    isNearLockedPortal(this.player, portalPos) &&
-    this.portalHintCooldown <= 0
-    ) {
-    this.portalHintCooldown = 12.0;
-    this.triggerStoryCue('portal_locked_hint');
-    }
+const nearestNpc = findNearestNpc(
+this.player.x,
+this.player.y,
+this.player.z,
+this.npcsDef,
+);
+if (nearestNpc?.id !== this.nearbyNpc?.id) {
+this.nearbyNpc = nearestNpc;
+if (nearestNpc && !this.greetedNpcs.has(nearestNpc.id)) {
+this.greetedNpcs.add(nearestNpc.id);
+this.triggerStoryCue(nearestNpc.cueId);
+}
+this.pushHud(true);
+}
 
-    if (events.jumped) this.audio.playJump();
-    if (events.startedFlying) this.audio.playFlightUnlock();
+if (
+isNearLockedPortal(this.player, portalPos) &&
+this.portalHintCooldown <= 0
+) {
+this.portalHintCooldown = 12.0;
+this.triggerStoryCue('portal_locked_hint');
+}
 
-    const horizSpeed = Math.hypot(this.player.vx, this.player.vz);
-    if (this.player.grounded && horizSpeed > 1.5) {
-    this.audio.playFootstep();
-    }
+if (events.jumped) this.audio.playJump();
+if (events.startedFlying) this.audio.playFlightUnlock();
 
-    this.sparkleCooldown -= dt;
-    if (this.player.isFlying && this.sparkleCooldown <= 0) {
-    this.sparkleCooldown = 0.035;
-    this.world.sparkles.emit(
-    this.player.x,
-    this.player.y + 0.65,
-    this.player.z,
-    4,
-    0.95,
-    -0.15,
-    );
-    }
+const horizSpeed = Math.hypot(this.player.vx, this.player.vz);
+if (this.player.grounded && horizSpeed > 1.5) {
+this.audio.playFootstep();
+}
 
-    this.explorerRig.root.position.set(
-    this.player.x,
-    this.player.y,
-    this.player.z,
-    );
-    this.explorerRig.root.rotation.y = this.player.yaw;
+this.sparkleCooldown -= dt;
+if (this.player.isFlying && this.sparkleCooldown <= 0) {
+this.sparkleCooldown = 0.035;
+this.world.sparkles.emit(
+this.player.x,
+this.player.y + 0.65,
+this.player.z,
+4,
+0.95,
+-0.15,
+);
+}
 
-    const turnRate = (this.player.yaw - this.prevYaw) / Math.max(dt, 0.001);
-    this.prevYaw = this.player.yaw;
+this.explorerRig.root.position.set(
+this.player.x,
+this.player.y,
+this.player.z,
+);
+this.explorerRig.root.rotation.y = this.player.yaw;
 
-    updateExplorerPose(this.explorerRig, {
-    time: t,
-    dt,
-    speed: horizSpeed,
-    walkDistance: this.player.walkDistance,
-    isFlying: this.player.isFlying,
-    grounded: this.player.grounded,
-    verticalVel: this.player.vy,
-    turnRate,
-    });
+const turnRate = (this.player.yaw - this.prevYaw) / Math.max(dt, 0.001);
+this.prevYaw = this.player.yaw;
 
-    updateMacawCompanion(
-    this.macawRig,
-    this.player.x,
-    this.player.y,
-    this.player.z,
-    this.player.yaw,
-    this.player.isFlying,
-    t,
-    dt,
-    );
+updateExplorerPose(this.explorerRig, {
+time: t,
+dt,
+speed: horizSpeed,
+walkDistance: this.player.walkDistance,
+isFlying: this.player.isFlying,
+grounded: this.player.grounded,
+verticalVel: this.player.vy,
+turnRate,
+});
 
-    const camDist = this.player.isFlying ? 7.6 : 6.0;
-    const camHeight = Math.sin(this.cameraPitch) * camDist + 1.45;
-    const horizDist = Math.cos(this.cameraPitch) * camDist;
+updateMacawCompanion(
+this.macawRig,
+this.player.x,
+this.player.y,
+this.player.z,
+this.player.yaw,
+this.player.isFlying,
+t,
+dt,
+);
 
-    this._camDesired.set(
-    this.player.x + Math.sin(this.cameraYaw) * horizDist,
-    this.player.y + camHeight,
-    this.player.z + Math.cos(this.cameraYaw) * horizDist,
-    );
-    const minCamGround =
-    groundFn(this._camDesired.x, this._camDesired.z) + 1.1;
-    if (this._camDesired.y < minCamGround) {
-    this._camDesired.y = minCamGround;
-    }
-    // Keep camera safely under the World 2 subterranean stalactite ceiling!
-    if (this.worldId === 2 && this._camDesired.y > maxFlightY - 1.2) {
-    this._camDesired.y = maxFlightY - 1.2;
-    }
+const camDist = this.player.isFlying ? 7.6 : 6.0;
+const camHeight = Math.sin(this.cameraPitch) * camDist + 1.45;
+const horizDist = Math.cos(this.cameraPitch) * camDist;
 
-    const camAlpha = 1 - Math.exp(-7.5 * dt);
-    this.camera.position.lerp(this._camDesired, camAlpha);
+this._camDesired.set(
+this.player.x + Math.sin(this.cameraYaw) * horizDist,
+this.player.y + camHeight,
+this.player.z + Math.cos(this.cameraYaw) * horizDist,
+);
+const minCamGround =
+groundFn(this._camDesired.x, this._camDesired.z) + 1.1;
+if (this._camDesired.y < minCamGround) {
+this._camDesired.y = minCamGround;
+}
+// Keep camera safely under the World 2 subterranean stalactite ceiling!
+if (this.worldId === 2 && this._camDesired.y > maxFlightY - 1.2) {
+this._camDesired.y = maxFlightY - 1.2;
+}
 
-    this._lookDesired.set(
-    this.player.x - Math.sin(this.cameraYaw) * 2.0,
-    this.player.y + (this.player.isFlying ? 1.2 : 1.3),
-    this.player.z - Math.cos(this.cameraYaw) * 2.0,
-    );
-    this._camTarget.lerp(this._lookDesired, camAlpha);
-    this.camera.lookAt(this._camTarget);
+const camAlpha = 1 - Math.exp(-7.5 * dt);
+this.camera.position.lerp(this._camDesired, camAlpha);
 
-    const targetFov = this.player.isFlying ? 61 : 54;
-    if (Math.abs(this.camera.fov - targetFov) > 0.05) {
-    this.camera.fov += (targetFov - this.camera.fov) * (1 - Math.exp(-5 * dt));
-    this.camera.updateProjectionMatrix();
-    }
+this._lookDesired.set(
+this.player.x - Math.sin(this.cameraYaw) * 2.0,
+this.player.y + (this.player.isFlying ? 1.2 : 1.3),
+this.player.z - Math.cos(this.cameraYaw) * 2.0,
+);
+this._camTarget.lerp(this._lookDesired, camAlpha);
+this.camera.lookAt(this._camTarget);
 
-    if (events.reachedPortal) {
-    this.audio.playPortalVictory();
-    this.world.sparkles.emit(
-    portalPos.x,
-    portalPos.y + 1.2,
-    portalPos.z,
-    60,
-    3.0,
-    2.5,
-    );
-    this.pendingCueQueue = [];
-    this.triggerStoryCue(WORLD_THEMES[this.worldId].victoryCueId);
-    this.setPhase('gameover');
-    }
+const targetFov = this.player.isFlying ? 61 : 54;
+if (Math.abs(this.camera.fov - targetFov) > 0.05) {
+this.camera.fov += (targetFov - this.camera.fov) * (1 - Math.exp(-5 * dt));
+this.camera.updateProjectionMatrix();
+}
 
-    this.pushHud(
-    events.collectedStars.length > 0 ||
-    events.collectedGems.length > 0 ||
-    events.unlockedFlightNow,
-    );
-    }
+if (events.reachedPortal) {
+this.audio.playPortalVictory();
+this.world.sparkles.emit(
+portalPos.x,
+portalPos.y + 1.2,
+portalPos.z,
+60,
+3.0,
+2.5,
+);
+this.pendingCueQueue = [];
+this.triggerStoryCue(WORLD_THEMES[this.worldId].victoryCueId);
+this.setPhase('gameover');
+}
 
-    const groundUnderPlayer = Math.max(
-    getWorldWaterLevel(this.worldId) + 0.04,
-    getWorldGroundHeight(this.worldId, this.player.x, this.player.z),
-    );
-    this.contactShadow.position.set(
-    this.player.x,
-    groundUnderPlayer + 0.035,
-    this.player.z,
-    );
-    const heightAboveGround = Math.max(0, this.player.y - groundUnderPlayer);
-    const shadowFade = THREE.MathUtils.clamp(1 - heightAboveGround / 8, 0.08, 1);
-    (this.contactShadow.material as THREE.MeshBasicMaterial).opacity =
-    0.52 * shadowFade;
-    this.contactShadow.scale.setScalar(1 + heightAboveGround * 0.06);
+this.pushHud(
+events.collectedStars.length > 0 ||
+events.collectedGems.length > 0 ||
+events.unlockedFlightNow,
+);
+}
 
-    // Follow Oli cleanly with texel-snapped directional shadow frustum across large worlds
-    const shadowSize = this.sunLight.shadow.mapSize.width || 1024;
-    const texelStep = 68 / shadowSize;
-    const snapX = Math.round(this.player.x / texelStep) * texelStep;
-    const snapZ = Math.round(this.player.z / texelStep) * texelStep;
-    this.sunLight.target.position.set(snapX, this.player.y, snapZ);
-    this.sunLight.position.set(
-    snapX + this._sunOffset.x,
-    this.player.y + this._sunOffset.y,
-    snapZ + this._sunOffset.z,
-    );
+const groundUnderPlayer = Math.max(
+getWorldWaterLevel(this.worldId) + 0.04,
+getWorldGroundHeight(this.worldId, this.player.x, this.player.z),
+);
+this.contactShadow.position.set(
+this.player.x,
+groundUnderPlayer + 0.035,
+this.player.z,
+);
+const heightAboveGround = Math.max(0, this.player.y - groundUnderPlayer);
+const shadowFade = THREE.MathUtils.clamp(1 - heightAboveGround / 8, 0.08, 1);
+(this.contactShadow.material as THREE.MeshBasicMaterial).opacity =
+0.52 * shadowFade;
+this.contactShadow.scale.setScalar(1 + heightAboveGround * 0.06);
 
-    if (!this.isSoftwareGl && this.graphicsQuality === 'ultra' && this.composer) {
-    this.composer.render();
-    } else {
-    this.renderer.render(this.scene, this.camera);
-    }
+// Follow Holy cleanly with texel-snapped directional shadow frustum across large worlds
+const shadowSize = this.sunLight.shadow.mapSize.width || 1024;
+const texelStep = 68 / shadowSize;
+const snapX = Math.round(this.player.x / texelStep) * texelStep;
+const snapZ = Math.round(this.player.z / texelStep) * texelStep;
+this.sunLight.target.position.set(snapX, this.player.y, snapZ);
+this.sunLight.position.set(
+snapX + this._sunOffset.x,
+this.player.y + this._sunOffset.y,
+snapZ + this._sunOffset.z,
+);
 
-    if (this.isSoftwareGl) {
-    this.afterDraw(this.tick);
-    } else {
-    this.frameId = requestAnimationFrame(this.tick);
-    }
-    };
+if (!this.isSoftwareGl && this.graphicsQuality === 'ultra' && this.composer) {
+this.composer.render();
+} else {
+this.renderer.render(this.scene, this.camera);
+}
 
-    public dispose(): void {
-    this.disposed = true;
-    cancelAnimationFrame(this.frameId);
-    clearTimeout(this.frameId);
+if (this.isSoftwareGl) {
+this.afterDraw(this.tick);
+} else {
+this.frameId = requestAnimationFrame(this.tick);
+}
+};
 
-    window.removeEventListener('keydown', this.handleKeyDown);
-    window.removeEventListener('keyup', this.handleKeyUp);
-    window.removeEventListener('blur', this.handleBlur);
-    window.removeEventListener('resize', this.handleResize);
-    window.removeEventListener('pointermove', this.handlePointerMove);
-    window.removeEventListener('pointerup', this.handlePointerUp);
-    this.renderer.domElement.removeEventListener(
-    'pointerdown',
-    this.handlePointerDown,
-    );
+public dispose(): void {
+this.disposed = true;
+cancelAnimationFrame(this.frameId);
+clearTimeout(this.frameId);
 
-    this.disposeWorldGroup(this.world?.worldGroup);
-    this.envHandle?.dispose();
-    this.composer?.dispose();
-    this.audio.dispose();
-    this.renderer.dispose();
-    if (this.renderer.domElement.parentElement === this.container) {
-    this.container.removeChild(this.renderer.domElement);
-    }
-    }
-    }
-  
+window.removeEventListener('keydown', this.handleKeyDown);
+window.removeEventListener('keyup', this.handleKeyUp);
+window.removeEventListener('blur', this.handleBlur);
+window.removeEventListener('resize', this.handleResize);
+window.removeEventListener('pointermove', this.handlePointerMove);
+window.removeEventListener('pointerup', this.handlePointerUp);
+this.renderer.domElement.removeEventListener(
+'pointerdown',
+this.handlePointerDown,
+);
+
+this.disposeWorldGroup(this.world?.worldGroup);
+this.envHandle?.dispose();
+this.composer?.dispose();
+this.audio.dispose();
+this.renderer.dispose();
+if (this.renderer.domElement.parentElement === this.container) {
+this.container.removeChild(this.renderer.domElement);
+}
+}
+}
