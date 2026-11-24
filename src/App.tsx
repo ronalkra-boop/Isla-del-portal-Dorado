@@ -11,7 +11,9 @@ createSunGems,
 
 const INITIAL_HUD: HudSnapshot = {
 phase: 'title',
+graphicsQuality: 'ultra',
 worldId: 1,
+worldShortName: WORLD_THEMES[1].shortName,
 worldName: WORLD_THEMES[1].name,
 worldSubtitle: WORLD_THEMES[1].subtitle,
 worldBibleVerse: WORLD_THEMES[1].bibleVerse,
@@ -28,6 +30,7 @@ flightEnergy: 100,
 elapsedTime: 0,
 justUnlockedFlight: false,
 muted: false,
+musicEnabled: true,
 nearbyNpc: null,
 activeStoryCue: null,
 activeQuiz: null,
@@ -96,13 +99,18 @@ onSelectWorld={(wId) => engineRef.current?.selectWorld(wId)}
 onTogglePause={() => engineRef.current?.togglePause()}
 onReturnTitle={() => engineRef.current?.returnToTitle()}
 onToggleMute={() => engineRef.current?.toggleMute()}
+onToggleMusic={() => engineRef.current?.toggleMusic()}
+onToggleGraphics={() => engineRef.current?.toggleGraphicsQuality()}
 onAskWaka={() => engineRef.current?.askWakaGuide()}
 onInteractNpc={() => engineRef.current?.interactWithNearbyNpc()}
 onPlayCue={(cueId) => engineRef.current?.triggerStoryCue(cueId)}
 onDismissCue={() => engineRef.current?.dismissStoryCue()}
 onOpenQuiz={() => engineRef.current?.openQuizForActiveCue()}
+onSpeakQuizHint={() => engineRef.current?.speakQuizHint()}
+onSpeakQuizWrong={() => engineRef.current?.speakQuizWrongAnswer()}
 onCloseQuiz={() => engineRef.current?.closeQuiz()}
 onSolveQuiz={(cueId) => engineRef.current?.completeQuizChallenge(cueId)}
+onVirtualInput={(partial) => engineRef.current?.setVirtualInput(partial)}
 />
 )}
 </main>
